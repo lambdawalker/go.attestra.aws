@@ -146,3 +146,15 @@ shared email resources are externally owned and must not be blindly deleted.
 
 The library's [wizard reference](https://github.com/lambdawalker/go.apexfission.aws.auth/tree/feat/parallel-deployment-wizard/deploy/wizard)
 documents all flags, ownership boundaries, recovery, and health-check limits.
+
+## Reuse settings from the original repository
+
+In `go.attestra.aws.auth`, run `./export-wizard.sh --environment dev` or
+`export-wizard.bat --environment dev` on Windows. Repeat for other environments.
+This writes `~/.attestra/legacy-wizard.json` with reusable nonsecret settings.
+Then launch this repository's `deploy.sh` or `deploy.bat` normally. After you
+choose the environment, questions covered by the export are skipped, including
+the existing SES sender domain/address. Missing values still prompt. Command-line
+flags and locally saved wizard choices take priority. Prefix, scope and operation
+are still selected normally. The export does not transfer legacy resource
+ownership, proof keys, certificates or credential vaults.
