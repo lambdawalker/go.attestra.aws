@@ -1,0 +1,3 @@
+name: attestra
+runtime: go
+description: Attestra application consuming the Apexfission auth framework

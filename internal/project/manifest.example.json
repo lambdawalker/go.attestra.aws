@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "application": "attestra",
+  "modules": {"auth": "0.1.0", "attestra": "0.1.0"},
+  "environments": {
+    "dev": {
+      "account": "000000000000",
+      "region": "us-east-1",
+      "backend": "s3://replace-attestra-state-bucket",
+      "stack": "dev",
+      "directory": "infra"
+    }
+  }
+}

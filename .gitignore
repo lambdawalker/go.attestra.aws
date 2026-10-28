@@ -1,0 +1,7 @@
+/dist/
+/apexfission.json
+/.apexfission/
+/infra/Pulumi.*.yaml
+!/infra/Pulumi.example.yaml
+/infra/.pulumi/
+*.exe
