@@ -4,20 +4,32 @@ on:
     inputs:
       environment:
         type: environment
-        description: Previously configured deployment environment
         required: true
+      backend_environment:
+        type: string
+        default: dev
+        required: true
+      prefix:
+        type: string
+        description: Prefix; empty explicitly selects final infrastructure
+        default: next
+      scope:
+        type: choice
+        options: [both, shared, backend]
+        default: both
       operation:
         type: choice
-        options: [preview, deploy]
+        options: [preview, deploy, status, health, publish]
         default: preview
 permissions:
   contents: read
   id-token: write
 concurrency:
-  group: attestra-${{ inputs.environment }}
+  group: attestra-wizard-${{ inputs.prefix || 'final' }}-${{ inputs.environment }}
   cancel-in-progress: false
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -25,32 +37,59 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.6'
+          cache-dependency-path: '**/go.sum'
       - uses: pulumi/setup-pulumi@v2
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
-      - name: Materialize environment configuration
+      - name: Restore reviewed nonsecret wizard settings
         env:
-          APPLICATION_MANIFEST: ${{ vars.APPLICATION_MANIFEST }}
-          PULUMI_STACK_YAML: ${{ secrets.PULUMI_STACK_YAML }}
-          TARGET_ENVIRONMENT: ${{ inputs.environment }}
+          WIZARD_SETTINGS_JSON: ${{ vars.WIZARD_SETTINGS_JSON }}
         run: |
           python3 - <<'PY'
-          import os, pathlib, re
-          env = os.environ['TARGET_ENVIRONMENT']
-          if not re.fullmatch(r'[a-z][a-z0-9-]{0,62}', env):
-              raise SystemExit('Invalid environment name')
-          for variable, path in [('APPLICATION_MANIFEST', 'apexfission.json'), ('PULUMI_STACK_YAML', f'infra/Pulumi.{env}.yaml')]:
-              value = os.environ[variable]
-              if not value:
-                  raise SystemExit(f'Missing {variable}')
-              pathlib.Path(path).write_text(value)
+          import json, os, pathlib
+          value = os.environ['WIZARD_SETTINGS_JSON']
+          if not value:
+              raise SystemExit('Set WIZARD_SETTINGS_JSON from the reviewed local .attestra/wizard.json first')
+          data = json.loads(value)
+          if data.get('Version') != 1:
+              raise SystemExit('Unsupported wizard settings version')
+          folder = pathlib.Path('.attestra')
+          folder.mkdir(mode=0o700, exist_ok=True)
+          target = folder / 'wizard.json'
+          target.write_text(value)
+          target.chmod(0o600)
           PY
-      - name: Run application deployment engine
+      - name: Run scoped deployment wizard
         env:
-          TARGET_ENVIRONMENT: ${{ inputs.environment }}
+          TARGET_ENVIRONMENT: ${{ inputs.backend_environment }}
+          DEPLOYMENT_PREFIX: ${{ inputs.prefix }}
+          SCOPE: ${{ inputs.scope }}
           OPERATION: ${{ inputs.operation }}
+          EXPECTED_ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
+          TARGET_REGION: ${{ vars.AWS_REGION }}
+          STATE_BACKEND: ${{ vars.PULUMI_BACKEND_URL }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
+          SENDER_DOMAIN: ${{ vars.SENDER_DOMAIN }}
+          SENDER_ADDRESS: ${{ vars.SENDER_ADDRESS }}
+          ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-        run: go run ./cmd/attestra "$OPERATION" --env "$TARGET_ENVIRONMENT"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          go run ./cmd/deploy --yes --profile "" --prefix "$DEPLOYMENT_PREFIX" \
+            --environment "$TARGET_ENVIRONMENT" --scope "$SCOPE" --operation "$OPERATION" \
+            --account "$EXPECTED_ACCOUNT" --region "$TARGET_REGION" \
+            --state-backend "$STATE_BACKEND" --base-domain "$BASE_DOMAIN" \
+            --sender-domain "$SENDER_DOMAIN" --sender-address "$SENDER_ADDRESS" \
+            --admin-email "$ADMIN_EMAIL"
+      - name: Retain recovery receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-receipts-${{ github.run_id }}
+          path: .attestra/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30

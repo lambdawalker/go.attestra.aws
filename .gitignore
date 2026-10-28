@@ -5,3 +5,9 @@
 !/infra/Pulumi.example.yaml
 /infra/.pulumi/
 *.exe
+.attestra/
+android-config/
+infra-index/Pulumi.*.yaml
+/infra/Pulumi.*.yaml.*
+/infra-index/Pulumi.*.yaml.*
+/infra-index/.pulumi/

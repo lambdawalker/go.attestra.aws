@@ -4,10 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/lambdawalker/go.apexfission.aws.auth/auth"
-	"github.com/lambdawalker/go.apexfission.aws.auth/deploy"
 	"github.com/lambdawalker/go.apexfission.aws.auth/deploy/build"
-	"github.com/lambdawalker/go.attestra.aws/app"
+	"github.com/lambdawalker/go.attestra.aws/internal/deployment"
 	"github.com/lambdawalker/go.attestra.aws/internal/project"
 	"io"
 	"os"
@@ -23,16 +21,16 @@ func main() {
 }
 func run(ctx context.Context, args []string, out io.Writer) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: attestra init|build|check|preview|deploy|status|teardown [--env dev]")
+		return fmt.Errorf("usage: attestra init|build|check (local only); use deploy.sh / deploy.bat for cloud operations")
 	}
 	op := args[0]
 	f := flag.NewFlagSet(op, flag.ContinueOnError)
 	f.SetOutput(out)
 	manifest := f.String("manifest", "apexfission.json", "application configuration")
 	environment := f.String("env", "dev", "target environment")
-	confirm := f.String("confirm", "", "exact destructive target")
-	destroy := f.Bool("allow-destroy", false, "authorize resource destruction")
-	production := f.Bool("allow-production", false, "authorize production destruction")
+	_ = f.String("confirm", "", "exact destructive target")
+	_ = f.Bool("allow-destroy", false, "authorize resource destruction")
+	_ = f.Bool("allow-production", false, "authorize production destruction")
 	if e := f.Parse(args[1:]); e != nil {
 		return e
 	}
@@ -40,7 +38,9 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return fmt.Errorf("unexpected arguments")
 	}
 	switch op {
-	case "init", "build", "check", "preview", "deploy", "status", "teardown":
+	case "preview", "deploy", "status", "teardown":
+		return fmt.Errorf("cloud operations moved to deploy.sh / deploy.bat (go run ./cmd/deploy); legacy manifests are not deployment targets")
+	case "init", "build", "check":
 	default:
 		return fmt.Errorf("unknown operation %q", op)
 	}
@@ -48,19 +48,16 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		if e := project.Init(*manifest); e != nil {
 			return e
 		}
-		fmt.Fprintln(out, "Created", *manifest, "— set the AWS account and state bucket before preview/deploy.")
+		fmt.Fprintln(out, "Created", *manifest, "— demonstration manifest only; use deploy.sh / deploy.bat for infrastructure.")
 		return nil
 	}
 	root, e := filepath.Abs(filepath.Dir(*manifest))
 	if e != nil {
 		return e
 	}
-	a, e := app.Compose(auth.Module{})
-	if e != nil {
-		return e
-	}
 	if op == "build" {
-		return build.Lambdas(ctx, root, a.Builds)
+		targets := append(deployment.SharedBuilds(), deployment.BackendBuilds()...)
+		return build.Lambdas(ctx, root, targets)
 	}
 	m, e := project.Load(*manifest)
 	if e != nil {
@@ -77,9 +74,5 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		fmt.Fprintln(out, "Manifest and linked modules validated; no AWS calls performed.")
 		return nil
 	}
-	engine := deploy.Engine{Manifest: m, Root: root}
-	if e = engine.Use(a); e != nil {
-		return e
-	}
-	return engine.Execute(ctx, op, *environment, deploy.Options{Confirm: *confirm, AllowDestroy: *destroy, AllowProduction: *production})
+	return fmt.Errorf("cloud operations moved to deploy.sh / deploy.bat (go run ./cmd/deploy); legacy manifests are not deployment targets")
 }

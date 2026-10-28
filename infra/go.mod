@@ -3,10 +3,7 @@ module github.com/lambdawalker/go.attestra.aws/infra
 go 1.26.6
 
 require (
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261028160334-8f7bdade14db
-	github.com/lambdawalker/go.apexfission.aws.auth/pulumi v0.0.0-20261028160334-8f7bdade14db
-	github.com/lambdawalker/go.attestra.aws v0.0.0
-	github.com/pulumi/pulumi-aws/sdk/v7 v7.44.0
+	github.com/lambdawalker/go.apexfission.aws.auth/pulumi v0.0.0-20261028193324-eda2f3f2a936
 	github.com/pulumi/pulumi/sdk/v3 v3.264.0
 )
 
@@ -20,10 +17,11 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aws/aws-lambda-go v1.55.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.47.5 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.21.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.8 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.75.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.69.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.13.4 // indirect
 	github.com/aws/smithy-go v1.28.7 // indirect
@@ -69,6 +67,7 @@ require (
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261028193324-eda2f3f2a936 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
@@ -87,6 +86,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
+	github.com/pulumi/pulumi-aws/sdk/v7 v7.44.0 // indirect
 	github.com/pulumi/pulumi-cloud-sdk/go v1.20260918.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
@@ -132,6 +132,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 )
-
-// Only the application is local; framework packages use downloaded, pinned versions.
-replace github.com/lambdawalker/go.attestra.aws => ..

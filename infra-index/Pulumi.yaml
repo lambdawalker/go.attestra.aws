@@ -1,0 +1,3 @@
+name: attestra-shared
+runtime: go
+description: Isolated Attestra shared administrator and environment index
