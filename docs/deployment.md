@@ -1,122 +1,148 @@
-# New-environment deployment
+# Parallel deployments
 
-This project creates a new Attestra application stack. It does **not** reuse or modify the older `go.attestra.aws.auth` application's resources or state. Review a separate migration plan before adopting existing users or resources.
+The launchers run `go run -buildvcs=false ./cmd/deploy` from the repository root and preserve
+arguments and exit status. The library owns wizard logic and infrastructure;
+this repository owns entrypoints and build targets.
+
+## Deployment identities
+
+The initial prefix is `next`; explicitly select empty for final domains.
+A literal prefix `final` is reserved. Prefixes are lowercase alphanumeric,
+start with a letter, and have at most 20 characters. Logical environment names
+are lowercase DNS-safe names; the combined stack name must fit 32 characters.
+Changing prefix selects another deployment, never renames existing resources.
+
+For base domain `attestra.com` and environment `dev`:
+
+| Purpose | Test deployment | Final deployment |
+| --- | --- | --- |
+| App links / passkey domain | next.dev.attestra.com | dev.attestra.com |
+| Backend API | next.api.dev.attestra.com | api.dev.attestra.com |
+| Index | next.index.attestra.com | index.attestra.com |
+| Administrator | next.admin.attestra.com | admin.attestra.com |
+
+All domain names above describe the new deployment convention. Compare the final
+hostnames with the actual legacy stack outputs before cutover; do not assume
+legacy API and app-link domains are interchangeable.
+
+The backend's registry environment identifier is its full stack name, for
+example `next-dev`. Administrator grants and runtime settings use that same
+identifier. Shared infrastructure is per deployment prefix, not per environment.
 
 ## Prerequisites
 
-- Go 1.26.6, AWS CLI v2 and Pulumi CLI.
-- An AWS profile/SSO session or CI OIDC role for the intended account.
-- A private, encrypted, versioned S3 bucket for this application's Pulumi state.
-- An application HTTPS origin, sender domain/address, and separate admin HTTPS hostname. Use a region supporting in-region Cognito/SES (the example uses us-east-1).
-- An issued ACM certificate for the admin hostname in the deployment region. Infrastructure creates its API Gateway custom domain/mapping; you publish the DNS record afterward.
+- Go 1.26.6, Pulumi CLI and AWS CLI v2.
+- An authenticated AWS profile/session or CI OIDC role. Authenticate with your
+  existing AWS CLI login/SSO flow before running the wizard.
+- The expected AWS account and region.
+- An existing private, versioned S3 state bucket with public access blocked.
+  Select a dedicated backend base; the wizard adds deployment isolation.
+- An existing verified SES domain identity in the selected account/region and a
+  matching sender address. The sender domain is never prefixed.
+- Cloudflare DNS access for the domain, or a supported Route53/preissued
+  certificate configuration as described by the wizard help.
+- A Pulumi configuration passphrase. Keep it in a password manager.
 
-No account IDs, existing domains, credentials, invitations or grants were inferred or changed during setup.
+The legacy credential vault is not automatically migrated. Do not rename its
+encrypted file: the original scope includes repository/environment identity.
 
-## Configure locally
-
-From the repository root:
-
-```sh
-go run ./cmd/attestra init
-```
-
-Edit ignored `apexfission.json`: replace the all-zero account and `replace-...` backend, choose your region, and keep each environment key equal to its stack name. Production environments must set `production: true`. The CLI rejects unchanged placeholders before calling AWS. Modules/build targets are checked against the statically linked application; build targets need not be duplicated in JSON.
-
-Authenticate normally, for example with `aws sso login --profile YOUR_PROFILE` and `AWS_PROFILE`. Initialize the application-owned stack:
+## Run
 
 ```sh
-pulumi login s3://YOUR_ATTESTRA_STATE_BUCKET
-cd infra
-pulumi stack init dev
-pulumi config set aws:region us-east-1
-pulumi config set --path 'aws:allowedAccountIds[0]' YOUR_12_DIGIT_ACCOUNT
-pulumi config set appOrigin https://YOUR_APP_HOST
-pulumi config set adminOrigin https://YOUR_ADMIN_HOST
-pulumi config set senderDomain YOUR_SENDER_DOMAIN
-pulumi config set senderAddress hello@YOUR_SENDER_DOMAIN
-pulumi config set adminCertificateArn YOUR_REGIONAL_ACM_CERTIFICATE_ARN
-pulumi config set --secret proofKey
+./deploy.sh
+# The same command on Windows:
+# deploy.bat
+
+# List supported noninteractive inputs:
+go run -buildvcs=false ./cmd/deploy --help
+
+# Build artifacts only, without AWS:
+go run ./cmd/attestra build
 ```
 
-For `proofKey`, enter base64 encoding of at least 32 cryptographically random bytes at the prompt. Do not reuse an example value or put it in a manifest. Keep the Pulumi passphrase outside Git. `infra/Pulumi.example.yaml` documents the nonsecret shape; actual stack files are ignored.
+Choose shared, backend, or both. Both deploys shared first and validates its
+account/region/stack outputs before configuring the backend. Choose preview to
+inspect an already initialized target; preview does not initialize stacks,
+publish DNS, grant administrators or publish registry changes. First deployment
+uses explicit deploy initialization. Existing stack configuration is restored
+locally in encrypted form before use. Preview rejects changed resource settings
+rather than showing a diff for stale configuration; choose deploy to review and
+apply those settings. Code-only changes can still be previewed.
 
-### Bootstrap and verify SES before full deployment
+Inputs and immutable deployment bindings are stored privately in ignored
+`.attestra/`. Keep recovery receipts when an operation is interrupted.
+Do not edit a receipt to bypass a mismatch or lock.
 
-Cognito requires the SES sender to be verified before configuring developer email ([AWS documentation](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-email.html)). For a **new** stack, first set `senderOnly` to true in `infra`:
+CI uses the same wizard with explicit flags and a protected GitHub environment.
+Set WIZARD_SETTINGS_JSON to the reviewed contents of local .attestra/wizard.json
+(nonsecret choices only). CI requires this snapshot so capture capacity, Android
+associations and DNS choices are not silently replaced by first-run defaults.
+The workflow clears the local AWS profile choice and uses its OIDC session.
+Configure `DEPLOY_ROLE_ARN`, `AWS_ACCOUNT_ID`, `AWS_REGION`,
+`PULUMI_BACKEND_URL`, `BASE_DOMAIN`, `SENDER_DOMAIN`,
+`SENDER_ADDRESS`, `ADMIN_EMAIL` as environment variables and
+`PULUMI_CONFIG_PASSPHRASE`, `CLOUDFLARE_API_TOKEN` as secrets.
+OIDC trust must authorize this repository's selected GitHub environment.
+A role authorized for the legacy repository does not automatically authorize
+this repository.
 
-```sh
-pulumi config set senderOnly true
-```
+## Shared email ownership
 
-Return to the repository root and run `go run ./cmd/attestra deploy --env dev`. This stage creates only the SES identity/DKIM resources under the same parent/names as the pinned auth component. Publish the TXT/DKIM records from the outputs and wait until the identity is verified. Confirm its status using the AWS SES console or the read-only command:
+The new backend references the existing SES identity. It does not declare or
+delete the SES identity, DKIM, verification TXT records or MAIL FROM records.
+Only app/API/admin/index domains are prefixed. Email verification links return
+to the new app origin even though the sender address stays unchanged.
 
-```sh
-aws ses get-identity-verification-attributes --identities YOUR_SENDER_DOMAIN --region YOUR_REGION
-```
+Legacy still owns its SES resources until a deliberate ownership transfer.
+Before any legacy teardown, preserve the identity and its DNS records under a
+surviving owner. Do not simply destroy the original stack and assume mail will
+continue working. That ownership/teardown operation is not performed by this
+wizard.
 
-After verification succeeds, set `senderOnly` to false in `infra`. Full provisioning includes a Pulumi SES verification waiter and makes authentication depend on it. The sender resources retain their exact logical identity. **Never turn senderOnly back on in an already fully deployed stack**: that would propose removing the other resources; protections help but do not replace this rule. Use only the normal full mode for subsequent updates.
+## Android and cutover
 
-Return to the repository root:
+The public Android configuration is written to
+`.attestra/<full-stack>-android.properties`, for example
+`.attestra/next-dev-android.properties`. Supply that file to your Android build
+as its public configuration input. Configure
+the corresponding app-link/passkey domain association using the wizard prompt
+or `--android-associations` JSON. Each entry contains `packageName` and
+`sha256CertFingerprints` (an array of actual signing-certificate SHA-256 fingerprints).
+This provisions association hosting for the Android package
+and signing certificate before testing passkeys. Pool/client IDs and app/index
+URLs must all refer to the same deployment.
 
-```sh
-go run ./cmd/attestra check --env dev
-go run ./cmd/attestra preview --env dev
-# After reviewing the preview:
-go run ./cmd/attestra deploy --env dev
-go run ./cmd/attestra status --env dev
-```
+Validate email link and manual-code confirmation, sign-in/refresh, passkey
+registration/login, configured password enrollment, capture/upload/processing,
+admin invitation/MFA, runtime setting changes and environment discovery.
 
-The library's engine verifies AWS identity, selected stack, region and allowed-account restriction, builds archives, and invokes Pulumi. Runtime and infrastructure use the same route declarations. `preview` does not run `up`.
+After the prefixed deployment passes live checks, preserve email resources and
+any data/settings you want to retain. Retire legacy only with a separately
+reviewed teardown plan. Deploy the final identity with an explicit empty prefix
+while keeping the test deployment available. Reconfigure Android for the final
+deployment and rerun live checks before retiring the prefixed deployment.
 
-## DNS, email and admin onboarding
+Both fresh deployments have different Cognito users and passkeys. Test users
+and their credentials are disposable; data is not migrated automatically.
+This change does not add an automatic destructive teardown operation.
 
-After an authorized deployment, read outputs:
+## Credentials and interrupted operations
 
-- `apiUrl`, `healthUrl`: application API and public process health.
-- `adminUrl`, `adminDnsTarget`: publish the admin hostname as a DNS record pointing to the API Gateway target. The certificate and mapping are provisioned; DNS is operator-owned.
-- `sesVerificationToken`, `sesDkimTokens`: retain the SES verification/DKIM records published during bootstrap. SES sandbox restrictions still apply; request production sending access before real-user delivery.
-- `userPoolId`, `clientId`, `issuer`: customer integration configuration.
-- `adminPoolId`, `adminClientId`, `configTableName`: administrator identity/grant setup.
+Terminal prompts hide the Pulumi passphrase and Cloudflare token. They remain
+in memory for the run; only nonsecret choices are saved. For unattended use,
+supply the documented environment variables. Save credentials separately in
+your password manager; the legacy vault is neither copied nor modified.
 
-The app origin must host the confirmation/deep-link client at `/verify-email`; this backend does not implement that client UI. Use the existing authentication client against the exported API/pool/client values.
+A failed registry publication has a durable receipt in the selected state bucket.
+Use the same deployment target with `--operation publish` to resume publication
+without another infrastructure update. Stale identity locks require inspection
+of active operations and pending receipts before manual recovery. Do not delete
+locks merely because a previous terminal was closed.
 
-Invite an administrator through Cognito using an operator role and complete password/TOTP enrollment. Create an explicit grant row in the config table:
+Cloudflare-created ACM certificates are owned by wizard receipts outside the
+Pulumi stacks and are deliberately retained. Any later teardown plan must include
+those certificate receipts and DNS records. Preissued certificate references and
+shared email resources are externally owned and must not be blindly deleted.
 
-| DynamoDB attribute | Type | Value |
-| --- | --- | --- |
-| `pk` | String | `GRANT#dev` |
-| `sk` | String | Administrator Cognito subject |
-| `active` | Boolean | `true` |
-| `permissions` | String set | `admin:access`, `attestra:admin` |
-
-No automatic administrator is created. The admin runtime cannot write grant rows. Sign in at `adminUrl` through the dedicated managed-login pool. The initial Attestra module contributes a page and status endpoint; it does not register a module configuration schema. Additional configuration panels can be added through the library contract later.
-
-The library's additional legacy administrator passkey-MFA reconciliation is not automatically enabled here; the new admin component supplies the framework's baseline MFA/PKCE behavior. Customer passkey APIs are wired to the Cognito regional endpoint.
-
-## GitHub Actions
-
-Verification runs on push and PR without AWS credentials. The deployment workflow is **manual only**, defaults to preview, uses an explicitly selected GitHub environment and OIDC, and does not offer teardown.
-
-Create a protected GitHub environment with:
-
-- Variables: `DEPLOY_ROLE_ARN`, `AWS_REGION`, `AWS_ACCOUNT_ID`, `APPLICATION_MANIFEST` (the full nonsecret manifest JSON).
-- Secrets: `PULUMI_CONFIG_PASSPHRASE`, `PULUMI_STACK_YAML` (the existing selected stack YAML, including encrypted Pulumi secrets).
-
-Restrict the AWS OIDC trust policy to this repository and the specific GitHub environment. Keep region/account values consistent with the manifest and stack. These remote settings and roles were not created by this setup.
-
-## Destruction
-
-Application identity pools and tables are protected. The CLI forwards the library's explicit destruction guards and does not automatically remove protection or delete data outside the stack:
-
-```sh
-go run ./cmd/attestra teardown --env prod --allow-destroy --allow-production \
-  --confirm 'attestra/prod/ACCOUNT/REGION/prod/s3://STATE_BUCKET'
-```
-
-This is documentation, not an instruction executed during setup. Review retention/exports, exact state ownership and resource protection separately. New application resources are not enrolled in the old environment-reset inventory.
-
-## Pinned-library browser compatibility
-
-The application wraps the admin shell response to add `connect-src` for its exact configured HTTPS Cognito login origin. The pinned library otherwise inherits a self-only CSP that blocks the browser OAuth token exchange. This narrow adapter is tested and can be removed after updating to a library revision that supplies the correct CSP. It does not allow arbitrary external origins.
-
-Browser-session extension compatibility: the adapter also forwards the host-only session cookie as a bearer header for `/admin/api/extensions/` requests because the pinned shell does not forward it internally. The normal token/grant checks still execute, and unsafe cookie methods must pass the same-origin check before adaptation.
+The library's [wizard reference](https://github.com/lambdawalker/go.apexfission.aws.auth/tree/feat/parallel-deployment-wizard/deploy/wizard)
+documents all flags, ownership boundaries, recovery, and health-check limits.

@@ -1,16 +1,26 @@
 # Verification scope
 
-The repository uses real downloaded framework modules pinned to merged commit `8f7bdade14db41377c3f695f9bc69519f4248ecc`; it needs no sibling framework checkout.
+The deployment wizard and both infrastructure entrypoints are checked locally;
+no AWS update, DNS write, administrator invitation, email delivery or teardown
+was executed during implementation.
 
-Local verification covers:
+Local verification includes root race tests and vet, compilation of backend and
+shared Pulumi entrypoints, shell launcher argument/cwd/exit-status behavior,
+Windows amd64 CLI cross-compilation, and actual packaging/inspection of all 22
+Linux ARM64 Lambda archives. Library tests cover runtime enrollment policies,
+admin authorization, prefix/provider/shared-output guards, external SES ownership,
+read-only preview, encrypted config recovery in fresh checkouts, resumable
+DNS/admin/export/publication, TLS/DNS planning and scoped deployment order.
+The consumer was verified with GOWORK=off against published commit
+`eda2f3f2a93633e3b005f761e0d94ee24a4cf15c`, with no local module replacements.
+Launchers disable optional VCS stamping so exported source trees and constrained
+Git environments can run them. The batch launcher was statically inspected;
+the Windows executable was cross-compiled, not executed on Windows.
 
-- Root unit/integration tests with race detection and `go vet`.
-- Actual library routing: public health, unauthenticated profile denial, verified subject response and customer/admin permission separation.
-- Runtime settings validation and init no-overwrite behavior.
-- Placeholder manifest rejection before cloud operations and linked-module build discovery.
-- Infrastructure tests with Pulumi mocks, checking protected resources, expected resource counts, JWT protection for `/v1/me`, admin secret separation and custom-domain mapping.
-- Regression tests for the pinned library's managed-login CSP and cookie-authenticated extension routing, including cross-origin mutation rejection.
-- SES bootstrap tests verify stable component/child identities and no premature pool creation; full auth registration depends on SES verification.
-- Real Linux arm64 Lambda ZIP packaging and executable bootstrap inspection.
+Pulumi mocks and fake AWS commands cannot establish live infrastructure readiness.
+Run the prefixed deployment and verify email/manual confirmation, passkeys and
+Android association hosting, password enrollment where enabled, capture processing,
+admin MFA, registry publication and runtime settings before the final deployment.
 
-No real AWS deployment, Pulumi preview against live state, DNS change, email delivery, administrator invitation, OAuth/browser session or hardware passkey flow was performed. Passing mocks/builds do not certify those integrations. The original authentication repository and library source are unchanged.
+Existing legacy stacks, their state, vaults, users and evidence remain untouched.
+Preserving shared SES ownership before legacy teardown is a separate operation.
