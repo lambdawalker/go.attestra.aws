@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.75.6
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.69.1
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.76.0
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261028193324-eda2f3f2a936
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030160722-8e74bfb7ed0e
 )
 
 require (

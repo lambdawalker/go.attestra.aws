@@ -158,3 +158,18 @@ the existing SES sender domain/address. Missing values still prompt. Command-lin
 flags and locally saved wizard choices take priority. Prefix, scope and operation
 are still selected normally. The export does not transfer legacy resource
 ownership, proof keys, certificates or credential vaults.
+
+## Capture recovery update
+
+The backend now includes the original repository's manual-review and stalled
+extraction recovery fixes through commit `4607807`. Ready captures whose
+extraction failed can save manually entered data. Abandoned extraction becomes a
+terminal failure after its recovery window, without interrupting a live worker.
+The capture worker also gains account-record UpdateItem permission for the
+atomic readiness transaction. Deploy the backend infrastructure as well as its
+Lambda code to apply this permission; rebuilding the app alone is insufficient.
+
+After deploying, test failed-extraction manual entry and saving, a normal
+extraction, and account readiness. The form should finish only after persisted
+`reviewed` data is returned or reconciled. Diagnostics avoid logging card fields
+and inference response contents.

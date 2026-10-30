@@ -24,3 +24,11 @@ admin MFA, registry publication and runtime settings before the final deployment
 
 Existing legacy stacks, their state, vaults, users and evidence remain untouched.
 Preserving shared SES ownership before legacy teardown is a separate operation.
+
+## Upstream capture synchronization
+
+The 2026-10-30 port incorporates original backend changes through `4607807`.
+Library runtime tests/vet, capture adapter race tests, and Pulumi backend tests/vet
+passed. The consumer pins published framework commit
+`8e74bfb7ed0eb42919cc7dc2efd1b5a1dac2904c` for runtime and infrastructure,
+without local replacements. This port has no live AWS or device acceptance test.

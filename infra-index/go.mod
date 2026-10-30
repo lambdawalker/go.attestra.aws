@@ -3,7 +3,7 @@ module github.com/lambdawalker/go.attestra.aws/infra-index
 go 1.26.6
 
 require (
-	github.com/lambdawalker/go.apexfission.aws.auth/pulumi v0.0.0-20261028193324-eda2f3f2a936
+	github.com/lambdawalker/go.apexfission.aws.auth/pulumi v0.0.0-20261030160722-8e74bfb7ed0e
 	github.com/pulumi/pulumi/sdk/v3 v3.264.0
 )
 
