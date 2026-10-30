@@ -36,5 +36,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.0 // indirect
 	github.com/aws/smithy-go v1.28.7 // indirect
-	github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261030202451-4d6a774cd137
+	github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261030221427-84c0bb43f6e6
 )
