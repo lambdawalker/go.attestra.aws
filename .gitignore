@@ -11,3 +11,8 @@ infra-index/Pulumi.*.yaml
 /infra/Pulumi.*.yaml.*
 /infra-index/Pulumi.*.yaml.*
 /infra-index/.pulumi/
+
+/.lambda-cache/
+/.lambda-cache.lock/
+
+**/__pycache__/

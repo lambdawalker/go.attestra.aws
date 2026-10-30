@@ -1,0 +1,97 @@
+name: Deploy selected target
+on:
+  workflow_call:
+    inputs:
+      github_environment:
+        type: string
+        required: true
+      backend_environment:
+        type: string
+        required: true
+      prefix:
+        type: string
+        required: true
+      scope:
+        type: string
+        required: true
+      operation:
+        type: string
+        required: true
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.github_environment }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: '**/go.sum'
+      - uses: pulumi/setup-pulumi@v2
+      - name: Validate required settings
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          DEPLOY_ROLE_ARN: ${{ vars.DEPLOY_ROLE_ARN }}
+          PULUMI_BACKEND_URL: ${{ vars.PULUMI_BACKEND_URL }}
+          WIZARD_SETTINGS_JSON: ${{ vars.WIZARD_SETTINGS_JSON }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          EXPECTED_SCOPE: ${{ inputs.scope }}
+          EXPECTED_ENVIRONMENT: ${{ inputs.backend_environment }}
+          EXPECTED_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib
+          for key in ('AWS_ACCOUNT_ID', 'AWS_REGION', 'DEPLOY_ROLE_ARN', 'PULUMI_BACKEND_URL', 'WIZARD_SETTINGS_JSON', 'PULUMI_CONFIG_PASSPHRASE'):
+              if not os.environ.get(key):
+                  raise SystemExit(f'Missing required environment setting: {key}')
+          data = json.loads(os.environ['WIZARD_SETTINGS_JSON'])
+          if data.get('Version') != 1:
+              raise SystemExit('Unsupported wizard settings version')
+          c = data['Choices']
+          if c['Prefix'] != os.environ['EXPECTED_PREFIX'] or c['Scope'] != os.environ['EXPECTED_SCOPE']:
+              raise SystemExit('Reviewed settings target differs from selected target')
+          if c['Scope'] == 'backend' and c['Environment'] != os.environ['EXPECTED_ENVIRONMENT']:
+              raise SystemExit('Reviewed backend environment differs from selected environment')
+          if c['Account'] != os.environ['AWS_ACCOUNT_ID'] or c['Region'] != os.environ['AWS_REGION'] or c['StateBackend'] != os.environ['PULUMI_BACKEND_URL']:
+              raise SystemExit('Reviewed AWS/state target differs from environment variables')
+          folder = pathlib.Path('.attestra')
+          folder.mkdir(mode=0o700, exist_ok=True)
+          target = folder / 'wizard.json'
+          target.write_text(os.environ['WIZARD_SETTINGS_JSON'])
+          target.chmod(0o600)
+          PY
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
+      - uses: actions/cache@v6.1.0
+        with:
+          path: .lambda-cache
+          key: lambda-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/go.mod', '**/go.sum', '**/*.go') }}
+          restore-keys: lambda-${{ runner.os }}-${{ runner.arch }}-
+      - name: Run deployment wizard with explicit CI approval
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.backend_environment }}
+          DEPLOYMENT_PREFIX: ${{ inputs.prefix }}
+          SCOPE: ${{ inputs.scope }}
+          OPERATION: ${{ inputs.operation }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          go run -buildvcs=false ./cmd/deploy --yes --profile "" \
+            --prefix "$DEPLOYMENT_PREFIX" --environment "$TARGET_ENVIRONMENT" \
+            --scope "$SCOPE" --operation "$OPERATION"
+      - name: Retain public Android configuration
+        if: success() && inputs.scope == 'backend'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: android-config-${{ inputs.github_environment }}-${{ github.run_id }}
+          path: .attestra/*-android.properties
+          include-hidden-files: true
+          if-no-files-found: ignore
