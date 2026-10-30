@@ -101,6 +101,19 @@ nonsecret settings. You may configure only admin/index or a single backend using
 `--scope admin-index` or `--scope backend`. Local deploy offers optional GitHub setup;
 `--github-setup` opts in explicitly. Choosing not to configure GitHub still allows
 local deployment. A failed setup preserves reviewed nonsecret answers for retry.
+If selected targets have no saved policy/role inputs, interactive setup asks for a
+reviewed policy file (`policy`), existing per-target role ARNs (`roles`), or `skip`
+to defer GitHub setup. Complete saved authorization inputs are reused.
+
+If an earlier run stopped with `deployment role missing`, resume local deployment
+using the saved settings and vault:
+
+```powershell
+.\deploy.bat --operation deploy --github-setup=false
+```
+
+Configure GitHub later with `--operation setup-github` and a reviewed policy or
+existing role ARNs as shown above.
 
 Open **Actions → Deploy → Run workflow**. Select Admin/index, Backend or All, the
 logical backend environment, prefix and operation. All deploys shared once and
