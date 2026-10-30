@@ -44,8 +44,8 @@ github.com/charmbracelet/x/term v0.2.1 h1:AQeHeLZ1OqSXhrAWpYUtZyX1T3zVxfpZuEQMIQ
 github.com/charmbracelet/x/term v0.2.1/go.mod h1:oQ4enTYFV7QN4m0i9mzHrViD7TQKvNEEkHUMCmsxdUg=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261028193324-eda2f3f2a936 h1:w8c4yoaWv6r7ses938ZMd2ifexq0MhWGWEimJfTZfPA=
-github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261028193324-eda2f3f2a936/go.mod h1:moYkM2jMfiXFioO+IwmVjtA136+CrrpVWHUOTAUxTK8=
+github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030160722-8e74bfb7ed0e h1:CtIxCtUat+dQkCGt7HWoNlbESLL6uRSrxKHdGJXsI4c=
+github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030160722-8e74bfb7ed0e/go.mod h1:moYkM2jMfiXFioO+IwmVjtA136+CrrpVWHUOTAUxTK8=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261028220539-721cb2849bea h1:Yrx4K/oYmyc8GeKMjkc+7s5td0YyQAPQlTxjBxoTV0s=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261028220539-721cb2849bea/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

@@ -3,7 +3,7 @@ module github.com/lambdawalker/go.attestra.aws/infra
 go 1.26.6
 
 require (
-	github.com/lambdawalker/go.apexfission.aws.auth/pulumi v0.0.0-20261028193324-eda2f3f2a936
+	github.com/lambdawalker/go.apexfission.aws.auth/pulumi v0.0.0-20261030160722-8e74bfb7ed0e
 	github.com/pulumi/pulumi/sdk/v3 v3.264.0
 )
 
@@ -67,7 +67,7 @@ require (
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261028193324-eda2f3f2a936 // indirect
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030160722-8e74bfb7ed0e // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
