@@ -9,12 +9,15 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.75.6
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.69.1
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.76.0
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030160722-8e74bfb7ed0e
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030202451-4d6a774cd137
 )
 
 require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
+	github.com/muesli/cancelreader v0.2.2 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 )
 
 require (
@@ -33,5 +36,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.0 // indirect
 	github.com/aws/smithy-go v1.28.7 // indirect
-	github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261028220539-721cb2849bea
+	github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261030202451-4d6a774cd137
 )

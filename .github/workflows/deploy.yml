@@ -2,21 +2,20 @@ name: Deploy
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        type: environment
-        required: true
+      scope:
+        type: choice
+        description: Component to deploy
+        options: [Admin/index, Backend, All]
+        default: All
       backend_environment:
         type: string
+        description: Logical backend environment (dev, qa, prod, or a custom name)
         default: dev
         required: true
       prefix:
         type: string
-        description: Prefix; empty explicitly selects final infrastructure
+        description: Prefix; empty explicitly selects separate final infrastructure
         default: next
-      scope:
-        type: choice
-        options: [both, shared, backend]
-        default: both
       operation:
         type: choice
         options: [preview, deploy, status, health, publish]
@@ -25,71 +24,67 @@ permissions:
   contents: read
   id-token: write
 concurrency:
-  group: attestra-wizard-${{ inputs.prefix || 'final' }}-${{ inputs.environment }}
+  group: attestra-wizard-${{ inputs.prefix || 'final' }}
   cancel-in-progress: false
 jobs:
-  deploy:
+  plan:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    outputs:
+      shared: ${{ steps.targets.outputs.shared }}
+      backend: ${{ steps.targets.outputs.backend }}
+      shared_environment: ${{ steps.targets.outputs.shared_environment }}
+      backend_environment: ${{ steps.targets.outputs.backend_environment }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.26.6'
-          cache-dependency-path: '**/go.sum'
-      - uses: pulumi/setup-pulumi@v2
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
-      - name: Restore reviewed nonsecret wizard settings
+      - id: targets
         env:
-          WIZARD_SETTINGS_JSON: ${{ vars.WIZARD_SETTINGS_JSON }}
-        run: |
-          python3 - <<'PY'
-          import json, os, pathlib
-          value = os.environ['WIZARD_SETTINGS_JSON']
-          if not value:
-              raise SystemExit('Set WIZARD_SETTINGS_JSON from the reviewed local .attestra/wizard.json first')
-          data = json.loads(value)
-          if data.get('Version') != 1:
-              raise SystemExit('Unsupported wizard settings version')
-          folder = pathlib.Path('.attestra')
-          folder.mkdir(mode=0o700, exist_ok=True)
-          target = folder / 'wizard.json'
-          target.write_text(value)
-          target.chmod(0o600)
-          PY
-      - name: Run scoped deployment wizard
-        env:
-          TARGET_ENVIRONMENT: ${{ inputs.backend_environment }}
-          DEPLOYMENT_PREFIX: ${{ inputs.prefix }}
+          PREFIX: ${{ inputs.prefix }}
+          LOGICAL_ENVIRONMENT: ${{ inputs.backend_environment }}
           SCOPE: ${{ inputs.scope }}
           OPERATION: ${{ inputs.operation }}
-          EXPECTED_ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
-          TARGET_REGION: ${{ vars.AWS_REGION }}
-          STATE_BACKEND: ${{ vars.PULUMI_BACKEND_URL }}
-          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
-          SENDER_DOMAIN: ${{ vars.SENDER_DOMAIN }}
-          SENDER_ADDRESS: ${{ vars.SENDER_ADDRESS }}
-          ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
-          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          go run ./cmd/deploy --yes --profile "" --prefix "$DEPLOYMENT_PREFIX" \
-            --environment "$TARGET_ENVIRONMENT" --scope "$SCOPE" --operation "$OPERATION" \
-            --account "$EXPECTED_ACCOUNT" --region "$TARGET_REGION" \
-            --state-backend "$STATE_BACKEND" --base-domain "$BASE_DOMAIN" \
-            --sender-domain "$SENDER_DOMAIN" --sender-address "$SENDER_ADDRESS" \
-            --admin-email "$ADMIN_EMAIL"
-      - name: Retain recovery receipts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-receipts-${{ github.run_id }}
-          path: .attestra/
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 30
+          python3 - <<'PY'
+          import os, re
+          prefix, env = os.environ['PREFIX'], os.environ['LOGICAL_ENVIRONMENT']
+          scope, operation = os.environ['SCOPE'], os.environ['OPERATION']
+          if prefix and (prefix == 'final' or not re.fullmatch(r'[a-z][a-z0-9]{0,19}', prefix)):
+              raise SystemExit('Invalid deployment prefix')
+          if not re.fullmatch(r'[a-z][a-z0-9]*(?:-[a-z0-9]+)*', env) or env == 'shared':
+              raise SystemExit('Invalid logical environment')
+          identity = prefix or 'final'
+          if len(identity + '-' + env) > 32:
+              raise SystemExit('Backend stack name is too long')
+          if scope not in ('Admin/index', 'Backend', 'All') or operation not in ('preview', 'deploy', 'status', 'health', 'publish'):
+              raise SystemExit('Invalid deployment operation/scope')
+          if operation == 'publish' and scope != 'Backend':
+              raise SystemExit('Publication recovery uses Backend scope')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"shared={str(scope in ('Admin/index', 'All')).lower()}\n")
+              out.write(f"backend={str(scope in ('Backend', 'All')).lower()}\n")
+              out.write(f'shared_environment={identity}-shared\nbackend_environment={identity}-{env}\n')
+          PY
+  shared:
+    needs: plan
+    if: needs.plan.outputs.shared == 'true'
+    uses: ./.github/workflows/deploy-target.yml
+    with:
+      github_environment: ${{ needs.plan.outputs.shared_environment }}
+      backend_environment: ${{ inputs.backend_environment }}
+      prefix: ${{ inputs.prefix }}
+      scope: shared
+      operation: ${{ inputs.operation }}
+    secrets: inherit
+  backend:
+    needs: [plan, shared]
+    if: >-
+      always() && needs.plan.result == 'success' &&
+      needs.plan.outputs.backend == 'true' &&
+      (needs.shared.result == 'success' || needs.shared.result == 'skipped')
+    uses: ./.github/workflows/deploy-target.yml
+    with:
+      github_environment: ${{ needs.plan.outputs.backend_environment }}
+      backend_environment: ${{ inputs.backend_environment }}
+      prefix: ${{ inputs.prefix }}
+      scope: backend
+      operation: ${{ inputs.operation }}
+    secrets: inherit

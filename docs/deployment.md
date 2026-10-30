@@ -32,8 +32,9 @@ identifier. Shared infrastructure is per deployment prefix, not per environment.
 ## Prerequisites
 
 - Go 1.26.6, Pulumi CLI and AWS CLI v2.
-- An authenticated AWS profile/session or CI OIDC role. Authenticate with your
-  existing AWS CLI login/SSO flow before running the wizard.
+- An AWS IAM Identity Center (SSO) profile for local runs or an OIDC role for CI.
+  The wizard checks SSO and streams login instructions when an interactive
+  session has expired. Noninteractive runs never start SSO login.
 - The expected AWS account and region.
 - An existing private, versioned S3 state bucket with public access blocked.
   Select a dedicated backend base; the wizard adds deployment isolation.
@@ -60,7 +61,7 @@ go run -buildvcs=false ./cmd/deploy --help
 go run ./cmd/attestra build
 ```
 
-Choose shared, backend, or both. Both deploys shared first and validates its
+Choose Admin/index (`admin-index`/`shared`), Backend (`backend`), or All (`all`/`both`). Both deploys shared first and validates its
 account/region/stack outputs before configuring the backend. Choose preview to
 inspect an already initialized target; preview does not initialize stacks,
 publish DNS, grant administrators or publish registry changes. First deployment
@@ -73,18 +74,48 @@ Inputs and immutable deployment bindings are stored privately in ignored
 `.attestra/`. Keep recovery receipts when an operation is interrupted.
 Do not edit a receipt to bypass a mismatch or lock.
 
-CI uses the same wizard with explicit flags and a protected GitHub environment.
-Set WIZARD_SETTINGS_JSON to the reviewed contents of local .attestra/wizard.json
-(nonsecret choices only). CI requires this snapshot so capture capacity, Android
-associations and DNS choices are not silently replaced by first-run defaults.
-The workflow clears the local AWS profile choice and uses its OIDC session.
-Configure `DEPLOY_ROLE_ARN`, `AWS_ACCOUNT_ID`, `AWS_REGION`,
-`PULUMI_BACKEND_URL`, `BASE_DOMAIN`, `SENDER_DOMAIN`,
-`SENDER_ADDRESS`, `ADMIN_EMAIL` as environment variables and
-`PULUMI_CONFIG_PASSPHRASE`, `CLOUDFLARE_API_TOKEN` as secrets.
-OIDC trust must authorize this repository's selected GitHub environment.
-A role authorized for the legacy repository does not automatically authorize
-this repository.
+## Configure deployment from GitHub
+
+Merge the reviewed workflow changes before dispatching them from GitHub Actions.
+Authenticate your GitHub CLI once with `gh auth login`. The account needs repository
+environment/variable/secret administration permissions. Then configure a selected
+target without deploying it:
+
+```powershell
+.\deploy.bat --operation setup-github --scope all --environment dev --prefix next `
+  --github-repository lambdawalker/go.attestra.aws `
+  --github-policy D:\secure\reviewed-deployment-policy.json --yes
+```
+
+The policy file must contain reviewed least-privilege permissions for your AWS
+account and the resources/state managed by this project. The wizard does not
+invent an AdministratorAccess policy. New roles receive exact repository and
+GitHub-environment OIDC trust. To reuse existing compatible roles instead, use
+`--github-shared-role-arn` / `--github-backend-role-arn`. Existing unrelated role
+policies and GitHub protections remain intact. Incompatible trust or permissive
+branch restrictions stop for manual review instead of being silently overwritten.
+
+The wizard creates/reconciles `next-shared` and `next-dev` GitHub environments,
+transfers deployment secrets securely from the unlocked vault, and saves reviewed
+nonsecret settings. You may configure only admin/index or a single backend using
+`--scope admin-index` or `--scope backend`. Local deploy offers optional GitHub setup;
+`--github-setup` opts in explicitly. Choosing not to configure GitHub still allows
+local deployment. A failed setup preserves reviewed nonsecret answers for retry.
+
+Open **Actions → Deploy → Run workflow**. Select Admin/index, Backend or All, the
+logical backend environment, prefix and operation. All deploys shared once and
+then the selected backend through its own protected environment. It does not
+implicitly deploy every environment. CI uses OIDC and explicit approval, never
+SSO or the interactive countdown. No deployment is dispatched by setup itself.
+
+Setup fingerprints public configuration and checks actual variables, main-only
+branch restrictions, OIDC trust and secret inventory before skipping writes.
+Encrypted local delivery metadata detects changed local secrets; only an opaque
+rotation identifier contributes to the public fingerprint. Use
+`--github-force-reconcile`, `--github-rotate-secrets` or a new
+`--github-secret-version` for deliberate redelivery/recovery. Without a vault key,
+setup conservatively redelivers secrets. Keep the vault out of CI artifacts.
+
 
 ## Shared email ownership
 
@@ -128,10 +159,27 @@ This change does not add an automatic destructive teardown operation.
 
 ## Credentials and interrupted operations
 
-Terminal prompts hide the Pulumi passphrase and Cloudflare token. They remain
-in memory for the run; only nonsecret choices are saved. For unattended use,
-supply the documented environment variables. Save credentials separately in
-your password manager; the legacy vault is neither copied nor modified.
+The first interactive deployment creates a private encrypted credential vault
+using the existing AES-GCM/Argon2id implementation. Its scope is this checkout
+and deployment prefix, so environments sharing the same admin/index stack reuse
+the shared Pulumi passphrase. The vault unlock passphrase is separate from the
+Pulumi passphrase and is never stored. Secret input is hidden; nonsecret settings
+remain in ignored `.attestra/wizard.json`. Existing settings migrate without
+changing the Version1 CI representation. The legacy credential vault is not copied.
+
+On reruns, select the target and operation; valid saved answers are skipped.
+Use `--reconfigure` to revisit settings and `--replace-cloudflare-token` to replace
+the encrypted DNS token. `--operation rotate-secrets` rotates only the vault
+unlock passphrase, not Pulumi's existing state encryption key. Back up the vault
+and retain both passphrases in your password manager. A fresh checkout restores
+Pulumi's authoritative encrypted configuration before updating it.
+
+After a successful preview, local deployment applies the saved Pulumi plan.
+The visible five-second countdown proceeds by default; Enter/yes proceeds
+immediately, and no/Escape/Ctrl+C/EOF cancels. Destructive previews require a
+separate explicit phrase without a timeout. Unattended runs require `--yes`.
+S3 state access uses IAM; its bucket encryption is distinct from Pulumi secret
+encryption and the local vault.
 
 A failed registry publication has a durable receipt in the selected state bucket.
 Use the same deployment target with `--operation publish` to resume publication
@@ -173,3 +221,18 @@ After deploying, test failed-extraction manual entry and saving, a normal
 extraction, and account readiness. The form should finish only after persisted
 `reviewed` data is returned or reconciled. Diagnostics avoid logging card fields
 and inference response contents.
+
+## Build reuse and parallel work
+
+`--operation build` builds the selected scope without AWS credentials or state.
+The ignored `.lambda-cache/` stores content-addressed ZIPs and receipts. Actual
+source dependencies, embedded files, Go module/workspace/replacement inputs,
+toolchain and build settings are fingerprinted; restored artifacts are verified.
+Identical signin entrypoints compile once. Independent packages build with a
+bounded worker pool; `--build-jobs N` changes its limit. `--force-rebuild` and
+`--clean-cache` apply only to the current invocation. Inspect an abandoned
+`.lambda-cache.lock/` before manually removing it; never remove an active lock.
+
+Pulumi receives the base64 SHA-256 of the actual Lambda ZIP bytes. Unchanged code
+can avoid compilation/upload while IAM and function configuration still receive
+a normal plan. Hashes do not replace remote-state checks or operation locking.
