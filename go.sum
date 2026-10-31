@@ -48,12 +48,16 @@ github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030202451-4d6a774cd1
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261030202451-4d6a774cd137/go.mod h1:moYkM2jMfiXFioO+IwmVjtA136+CrrpVWHUOTAUxTK8=
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261031002251-f6f054a38d6a h1:Uj+XWocrtf7YSJW8ZdbgwYvdkRBW8Br5Uova/3fMRb8=
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261031002251-f6f054a38d6a/go.mod h1:moYkM2jMfiXFioO+IwmVjtA136+CrrpVWHUOTAUxTK8=
+github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261031004639-1ec9ddf6009f h1:t6bnU/l6HCMWfn19RBKxo+giBkaSaRWLh2psr/NIKAg=
+github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261031004639-1ec9ddf6009f/go.mod h1:moYkM2jMfiXFioO+IwmVjtA136+CrrpVWHUOTAUxTK8=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261030202451-4d6a774cd137 h1:xyxg9DMINpDcG+Jr28tScYW5pWXEYp0Ki0GiVS5Fwxs=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261030202451-4d6a774cd137/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261030221427-84c0bb43f6e6 h1:1X3eDYKwu5lnXI/k043jyFU1oA32FygCVgVYJaeZVsU=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261030221427-84c0bb43f6e6/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031002251-f6f054a38d6a h1:jI9rP4vzSpIL2VnaZedSUfvVJpTBO2TQ/cT0yYyQ2fc=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031002251-f6f054a38d6a/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
+github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031004639-1ec9ddf6009f h1:vvYcaRlI2WU3Emcw6B1j7T+LZGaHK8R1cEhsuZenxhQ=
+github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031004639-1ec9ddf6009f/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
 github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELUXHmA=
 github.com/muesli/cancelreader v0.2.2/go.mod h1:3XuTXfFS2VjM+HTLZY9Ak0l6eUKfijIfMUZ4EgX0QYo=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

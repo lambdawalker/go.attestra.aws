@@ -268,3 +268,27 @@ bounded worker pool; `--build-jobs N` changes its limit. `--force-rebuild` and
 Pulumi receives the base64 SHA-256 of the actual Lambda ZIP bytes. Unchanged code
 can avoid compilation/upload while IAM and function configuration still receive
 a normal plan. Hashes do not replace remote-state checks or operation locking.
+
+## Failed reviewed deployments
+
+Approval checks the saved plan's resource operations. Words such as
+DeleteFunctionConcurrency inside an IAM policy do not classify an update as
+destructive. Actual deletes/replacements still require the explicit phrase;
+unknown plan operations or formats stop before apply.
+
+Failed Pulumi preview/up commands now show redacted diagnostics. Config/export
+and secret-writing output stays suppressed. Keep the diagnostic error when
+reporting a failure; an exit status alone cannot identify the AWS/Pulumi cause.
+
+Runtime defaults use deterministic Pulumi outputs. The shared index records the
+actual timestamp during fenced publication, preserving it when defaults do not
+change. When upgrading this fix, deploy **All** once so the index and backend use
+the same publication behavior:
+
+```powershell
+.\deploy.bat --operation deploy --scope all --environment dev --prefix next
+```
+
+After a failed apply, rerun the wizard to refresh current state and review a new
+plan; some planned operations may already have completed. Keep the existing state.
+The printed plan path is temporary and is removed when the invocation ends.
