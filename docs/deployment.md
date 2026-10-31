@@ -77,43 +77,62 @@ Do not edit a receipt to bypass a mismatch or lock.
 ## Configure deployment from GitHub
 
 Merge the reviewed workflow changes before dispatching them from GitHub Actions.
-Authenticate your GitHub CLI once with `gh auth login`. The account needs repository
-environment/variable/secret administration permissions. Then configure a selected
-target without deploying it:
+Authenticate your GitHub CLI once with `gh auth login`, and use AWS SSO locally.
+The GitHub account needs repository environment/variable/secret administration
+permissions. The wizard asks **Set up deployment from GitHub? [Y/n]** and handles
+the rest: it generates separate admin/index and backend AWS deployment policies,
+shows their complete JSON for explicit approval, creates/reuses OIDC roles and
+runtime permission boundaries, and reconciles GitHub environments, variables and
+encrypted secrets. No hand-written policy file or role ARN is needed.
+
+To configure a selected target without deploying it:
 
 ```powershell
-.\deploy.bat --operation setup-github --scope all --environment dev --prefix next `
-  --github-repository lambdawalker/go.attestra.aws `
-  --github-policy D:\secure\reviewed-deployment-policy.json --yes
+.\deploy.bat --operation setup-github --scope all --environment dev --prefix next
 ```
 
-The policy file must contain reviewed least-privilege permissions for your AWS
-account and the resources/state managed by this project. The wizard does not
-invent an AdministratorAccess policy. New roles receive exact repository and
-GitHub-environment OIDC trust. To reuse existing compatible roles instead, use
-`--github-shared-role-arn` / `--github-backend-role-arn`. Existing unrelated role
-policies and GitHub protections remain intact. Incompatible trust or permissive
-branch restrictions stop for manual review instead of being silently overwritten.
+Generated JSON is saved under `.attestra/github-policies/`. Permission approval
+has no timer; read the scope notes and answer `yes` to approve. Subsequent runs
+reuse the approval when permissions match, while still checking remote policies,
+role trust and environment settings for drift. Permission changes require another
+review. For unattended enrollment, first generate/review the files, then rerun
+with `--yes --github-approve-policy <review-SHA256>`. Ordinary Actions use the
+saved runtime pins and do not enroll IAM resources.
 
-The wizard creates/reconciles `next-shared` and `next-dev` GitHub environments,
-transfers deployment secrets securely from the unlocked vault, and saves reviewed
-nonsecret settings. You may configure only admin/index or a single backend using
-`--scope admin-index` or `--scope backend`. Local deploy offers optional GitHub setup;
-`--github-setup` opts in explicitly. Choosing not to configure GitHub still allows
-local deployment. A failed setup preserves reviewed nonsecret answers for retry.
-If selected targets have no saved policy/role inputs, interactive setup asks for a
-reviewed policy file (`policy`), existing per-target role ARNs (`roles`), or `skip`
-to defer GitHub setup. Complete saved authorization inputs are reused.
+Policies restrict state objects to this bucket/identity prefix, and Lambda code
+and runtime roles to target-specific names with mandatory execution boundaries.
+Some AWS creation/discovery APIs require broader regional permissions; existing
+table/bucket/queue families overlap modular environments, and optional CloudFront
+permissions are global within the account. The displayed documents show these
+limits. State KMS keys are discovered by exact ARN, with cryptographic access
+restricted through S3; existing KMS key policies must allow IAM use. The state
+bucket name cannot overlap `id-evidence-*` or `app-associations-*` application
+families in automatic mode. No AdministratorAccess or permanent AWS keys are used.
 
-If an earlier run stopped with `deployment role missing`, resume local deployment
-using the saved settings and vault:
+For an existing stack, automatic runtime names can cause role/function
+replacements. Complete a **local SSO deployment** and inspect the Pulumi preview
+before dispatching Actions. If setup detects an existing reset function without
+the new boundary, it creates the approved boundary and asks for local adoption:
 
 ```powershell
 .\deploy.bat --operation deploy --github-setup=false
+.\deploy.bat --operation setup-github
 ```
 
-Configure GitHub later with `--operation setup-github` and a reviewed policy or
-existing role ARNs as shown above.
+This preserves saved answers and the encrypted vault. After local adoption,
+retrying setup finishes GitHub configuration. Old immutable policies remain until
+you separately verify they are unused and remove them.
+
+Advanced overrides are available: `--github-policy D:\secure\reviewed-policy.json`
+or existing `--github-shared-role-arn` / `--github-backend-role-arn` values select
+manual enrollment. Existing manual deployments keep their runtime naming unless
+automatic mode is explicitly adopted.
+
+The wizard configures `next-shared` and `next-dev` environments; choose
+`--scope admin-index` or `--scope backend` to configure only one. Existing branch
+protections and unrelated settings remain intact. Incompatible trust, protections,
+unexpected permissions on automatic roles, or changed immutable policy contents
+stop for manual review. Setup never dispatches an Action.
 
 Open **Actions → Deploy → Run workflow**. Select Admin/index, Backend or All, the
 logical backend environment, prefix and operation. All deploys shared once and
