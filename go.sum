@@ -60,6 +60,8 @@ github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031004639-1ec
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031004639-1ec9ddf6009f/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031010514-12c63b256b11 h1:uEQOTrR6zKEHbwZ+YdRWjZ6kVbrtfESgIEJ59UgVQtY=
 github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031010514-12c63b256b11/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
+github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031112322-1bbb8777a20b h1:SeSw/BOCOip5pTyXi3eCKnqMUPB3z7NB+qp/3c4qje0=
+github.com/lambdawalker/go.apexfission.aws.auth/deploy v0.0.0-20261031112322-1bbb8777a20b/go.mod h1:IACqfVDOF6CCTevVuraHzHARixw9YX63ohu+O1Zdd08=
 github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELUXHmA=
 github.com/muesli/cancelreader v0.2.2/go.mod h1:3XuTXfFS2VjM+HTLZY9Ak0l6eUKfijIfMUZ4EgX0QYo=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

@@ -295,3 +295,26 @@ the same publication behavior:
 After a failed apply, rerun the wizard to refresh current state and review a new
 plan; some planned operations may already have completed. Keep the existing state.
 The printed plan path is temporary and is removed when the invocation ends.
+
+## AWS startup diagnostics
+
+An AWS CLI exit status such as 255 alone does not identify the failing operation
+or cause. The wizard includes service/operation and redacted stderr. AWS stdout
+is withheld on failure because credential exports and object reads can contain
+secrets; debug-mode output stays suppressed.
+
+Interactive renewal supports both explicit profiles and AWS's ambient/default
+SSO selection. It requires a recognized expired/invalid session and confirmed SSO
+configuration, then checks the account again after login. It does not retry
+permission/network errors as login problems or start interactive login in CI.
+
+Check credentials independently with the same profile the wizard uses:
+
+```powershell
+aws sts get-caller-identity --region us-east-2
+```
+
+Add `--profile NAME` if you selected a named profile. If the CLI reports SSO expiry,
+renew with `aws sso login` using that same profile. If STS succeeds, investigate
+the operation named in the wizard's diagnostic rather than assuming the failure
+is authentication. Set a named wizard profile with `--profile NAME` when needed.
