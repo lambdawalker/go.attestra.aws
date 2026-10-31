@@ -274,7 +274,10 @@ a normal plan. Hashes do not replace remote-state checks or operation locking.
 Approval checks the saved plan's resource operations. Words such as
 DeleteFunctionConcurrency inside an IAM policy do not classify an update as
 destructive. Actual deletes/replacements still require the explicit phrase;
-unknown plan operations or formats stop before apply.
+unknown plan operations or formats stop before apply. The unwrapped format is
+recognized from its resourcePlans object; manifest.version is CLI build metadata.
+Labels such as v3.273.0 or development builds do not invalidate a structurally
+compatible plan. Real CLI-generated update/delete fixtures cover this behavior.
 
 Failed Pulumi preview/up commands now show redacted diagnostics. Config/export
 and secret-writing output stays suppressed. Keep the diagnostic error when
