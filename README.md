@@ -45,7 +45,7 @@ Configuration contract metadata distinguishes Application settings from Artifact
 python scripts/check_lambda_archives.py
 ```
 
-Windows uses `scripts/build.bat`. The Go builder consumes the feature artifact manifest through the pinned module dependency, builds nine sign-in routes once, and builds the local admin. The index archive is built by the shared workflow. No sibling feature checkout is required.
+Windows uses `scripts/build.bat`. The Go builder consumes the feature artifact manifest through the pinned module dependency, builds nine sign-in routes once, and builds the local admin. The index archive is built by the shared workflow. No sibling feature checkout is required. The root `go.mod` also declares each unique feature Lambda command as a Go tool dependency so `go mod tidy` retains its runtime dependencies and checksums. When upgrading the feature manifest, keep this tool list in sync.
 
 Run tests/vet separately in `infra`, `infra-index` and `tools/deploy`. CI also checks native mocks, archive shape, dashboard interactions and dependency integrity. Provider mocks do not prove live IAM, DNS, model availability or data migration.
 

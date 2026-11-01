@@ -23,9 +23,26 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.42.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.76.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.10.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.0 // indirect
 	github.com/aws/smithy-go v1.28.7 // indirect
+)
+
+tool (
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/app-config
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/capture
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/capture-dispatcher
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/capture-worker
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/challenge
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/confirm
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/environment-reset
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/passkeycomplete
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/passkeyoptions
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/resend
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/signin
+	github.com/lambdawalker/go.apexfission.aws.auth/cmd/signup
 )
