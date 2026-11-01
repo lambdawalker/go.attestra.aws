@@ -16,8 +16,8 @@ import (
 
 	envregistry "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/registry"
 
-	"github.com/lambdawalker/go.attestra.aws/registry"
 	"github.com/lambdawalker/go.apexfission.aws.auth/runtimeconfig"
+	"github.com/lambdawalker/go.attestra.aws/registry"
 )
 
 func indexClientFromConfig(r *processRunner, dir, stack string) (*envregistry.Client, error) {

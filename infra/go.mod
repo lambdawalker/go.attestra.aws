@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261101213142-091b242110c7
 	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261101213142-091b242110c7
-	github.com/lambdawalker/go.attestra.aws v0.0.0
+	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
 	github.com/lambdawalker/go.infra.composer v0.0.0-20261101203048-2628bc245bc6
 	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261101203048-2628bc245bc6
 	github.com/pulumi/pulumi/sdk/v3 v3.273.0

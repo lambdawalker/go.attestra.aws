@@ -5,8 +5,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/lambdawalker/go.attestra.aws/registry"
 	"github.com/lambdawalker/go.apexfission.aws.auth/runtimeconfig"
+	"github.com/lambdawalker/go.attestra.aws/registry"
 	"log"
 	"os"
 )
