@@ -1,0 +1,17 @@
+name: attestra-application
+runtime: go
+description: Attestra application composition with an independently packaged authentication feature
+config:
+  appOrigin:
+    type: string
+  senderDomain:
+    type: string
+  senderAddress:
+    type: string
+  proofKey:
+    type: string
+    secret: true
+  runtimeTableName:
+    type: string
+  runtimeTableArn:
+    type: string
