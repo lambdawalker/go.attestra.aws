@@ -1,0 +1,102 @@
+package build
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/lambdawalker/go.apexfission.aws.auth/artifacts"
+)
+
+func TestLambdaBuildsDeduplicatesSignin(t *testing.T) {
+	jobs := lambdaBuilds()
+	seen := map[string]bool{}
+	for _, job := range jobs {
+		if strings.HasSuffix(job.source, "/cmd/signin") && len(job.names) != 9 {
+			t.Fatal(job)
+		}
+		for _, name := range job.names {
+			if seen[name] {
+				t.Fatal("duplicate", name)
+			}
+			seen[name] = true
+		}
+	}
+	if len(jobs) != 13 || len(seen) != 21 {
+		t.Fatal(len(jobs), len(seen))
+	}
+}
+
+func TestLambdaBuildsBoundedAndCancels(t *testing.T) {
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
+	done := make(chan error, 1)
+	var active, peak atomic.Int32
+	failure := errors.New("compile failed")
+	go func() {
+		done <- runLambdaBuilds(lambdaBuilds(), 2, func(ctx context.Context, job lambdaBuild) error {
+			n := active.Add(1)
+			defer active.Add(-1)
+			for old := peak.Load(); n > old; old = peak.Load() {
+				if peak.CompareAndSwap(old, n) {
+					break
+				}
+			}
+			started <- struct{}{}
+			if strings.HasSuffix(job.source, "/cmd/signup") {
+				<-release
+				return failure
+			}
+			<-ctx.Done()
+			return ctx.Err()
+		})
+	}()
+	for n := 0; n < 2; n++ {
+		select {
+		case <-started:
+		case <-time.After(5 * time.Second):
+			t.Fatal("builds did not start concurrently")
+		}
+	}
+	close(release)
+	select {
+	case err := <-done:
+		if !errors.Is(err, failure) {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("workers failed to cancel")
+	}
+	if peak.Load() != 2 || active.Load() != 0 {
+		t.Fatal(peak.Load(), active.Load())
+	}
+}
+
+func TestLambdaBuildsUseFeatureManifestAndLocalAdmin(t *testing.T) {
+	sources := map[string]string{}
+	for _, job := range lambdaBuilds() {
+		for _, name := range job.names {
+			sources[name] = job.source
+		}
+	}
+	for _, artifact := range artifacts.Lambdas() {
+		if sources[artifact.Name] != artifact.Package {
+			t.Errorf("%s: got %q want manifest package %q", artifact.Name, sources[artifact.Name], artifact.Package)
+		}
+		if !strings.HasPrefix(sources[artifact.Name], "github.com/lambdawalker/go.apexfission.aws.auth/cmd/") {
+			t.Errorf("feature command must be module-aware: %q", sources[artifact.Name])
+		}
+	}
+	if sources["admin"] != "./cmd/admin" {
+		t.Errorf("admin source: %q", sources["admin"])
+	}
+	if sources["signup"] == "./cmd/signup" {
+		t.Fatal("requires deleted application signup command")
+	}
+	if len(sources) != len(artifacts.Lambdas())+1 {
+		t.Fatal("unexpected Lambda inventory", sources)
+	}
+}

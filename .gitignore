@@ -1,0 +1,12 @@
+/dist/
+/bin/
+/android-config/
+.pulumi/
+Pulumi.*.yaml
+!Pulumi.yaml
+go.work
+go.work.sum
+*.local
+__pycache__/
+/tools/deploy/deploy-check
+/tools/deploy/deploy-check.exe

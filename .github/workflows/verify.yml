@@ -1,0 +1,50 @@
+name: Verify application composition
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  modules:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ['.', 'infra', 'infra-index', 'tools/deploy']
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: '**/go.sum'
+      - run: go mod verify
+      - run: go test -race ./...
+      - run: go vet ./...
+  build-and-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: '**/go.sum'
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - run: node --test adminapi/web_test.cjs
+      - run: bash scripts/build.sh
+      - run: python3 scripts/check_lambda_archives.py
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - run: test -z "$(gofmt -l .)"
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: '**/go.sum'
+      - run: ./scripts/build.bat
+      - run: python scripts/check_lambda_archives.py

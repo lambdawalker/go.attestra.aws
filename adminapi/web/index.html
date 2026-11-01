@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Attestra | Runtime control</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">attéstra<span>CONTROL ROOM</span></a
+      ><span class="badge">Runtime configuration</span
+      ><button id="activatePasskey" hidden>Activate passkey MFA</button>
+      <button id="passkey" hidden>Add a passkey</button
+      ><button id="refresh" hidden>Refresh</button
+      ><button id="logout" hidden>Sign out</button>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow">APPLICATION OPERATIONS</p>
+        <h1>Change the experience.<br />Keep the safeguards.</h1>
+        <p>
+          Publish onboarding settings directly to your applications. Every change
+          is versioned, attributed, and reversible.
+        </p>
+      </section>
+      <p id="message" role="status" aria-live="polite">
+        Loading secure console…
+      </p>
+      <button id="login" hidden>Sign in to your workspace →</button>
+      <section id="console" hidden>
+        <div class="toolbar">
+          <label>Environment<select id="environment"></select></label>
+          <div>
+            <span class="eyebrow">CURRENT REVISION</span
+            ><strong id="revision">—</strong><small id="updated"></small>
+          </div>
+        </div>
+        <div class="grid">
+          <form id="config">
+            <p class="eyebrow">ONBOARDING POLICY</p>
+            <h2>Enrollment requirements</h2>
+            <p class="muted">Required steps must be completed. Optional steps can be skipped. Disabled steps are omitted from onboarding; existing credentials remain usable.</p>
+            <div class="policy-grid">
+              <label>ID capture<select id="idCaptureRequirement" required><option value="required">Required</option><option value="optional">Optional</option><option value="disabled">Disabled</option></select></label>
+              <label>Passkey<select id="passkeyRequirement" required><option value="required">Required</option><option value="optional">Optional</option><option value="disabled">Disabled</option></select></label>
+              <label>Password<select id="passwordRequirement" required><option value="required">Required</option><option value="optional">Optional</option><option value="disabled">Disabled</option></select></label>
+            </div>
+            <label>Password placement<select id="passwordPlacement" required>
+              <option value="with_email">With email</option>
+              <option value="after_verification">After email verification</option>
+              <option value="hidden">Hidden</option>
+            </select></label>
+            <p class="muted">Hiding password entry disables password enrollment. Enabling password enrollment selects after email verification by default.</p>
+            <fieldset>
+              <legend>Password policy</legend>
+              <p class="muted">Rules apply to new passwords. ASCII letters, digits and printable punctuation only; no whitespace. Rules remain saved when password enrollment is disabled.</p>
+              <div class="policy-grid">
+                <label>Minimum length<input id="minLength" type="number" min="8" max="128" step="1" required /></label>
+                <label>Maximum length<input id="maxLength" type="number" min="8" max="128" step="1" required /></label>
+              </div>
+              <label class="policy-row">Lowercase (a–z)<select id="lowercase" required><option value="allowed">Allowed</option><option value="required">Required</option><option value="disallowed">Disallowed</option></select></label>
+              <label class="policy-row">Uppercase (A–Z)<select id="uppercase" required><option value="allowed">Allowed</option><option value="required">Required</option><option value="disallowed">Disallowed</option></select></label>
+              <label class="policy-row">Numbers (0–9)<select id="numbers" required><option value="allowed">Allowed</option><option value="required">Required</option><option value="disallowed">Disallowed</option></select></label>
+              <label class="policy-row">Symbols (punctuation)<select id="symbols" required><option value="allowed">Allowed</option><option value="required">Required</option><option value="disallowed">Disallowed</option></select></label>
+            </fieldset>
+            <h2>Identity document capture</h2>
+            <p class="muted">
+              New capture sessions use these settings. Existing captures retain
+              the disclosure the user accepted.
+            </p>
+            <p>
+              Document type: <strong>ID card</strong> (including driver’s
+              licenses and state or federal IDs).
+            </p>
+            <p class="muted">
+              One disclosure per language. Country of origin is collected after
+              scanning. English is the fallback when a translation is
+              unavailable.
+            </p>
+            <label
+              >Disclosure — English<textarea
+                id="purposeEn"
+                required
+                maxlength="1024"
+                rows="3"
+              ></textarea>
+            </label>
+            <label
+              >Disclosure — Español<textarea
+                id="purposeEs"
+                maxlength="1024"
+                rows="3"
+              ></textarea>
+            </label>
+            <label
+              >Disclosure — Français<textarea
+                id="purposeFr"
+                maxlength="1024"
+                rows="3"
+              ></textarea>
+            </label>
+            <section id="review" hidden class="notice">
+              <strong>Review changes</strong>
+              <pre id="diff"></pre>
+              <button type="button" id="confirmPublish">
+                Confirm publication</button
+              ><button type="button" id="cancelPublish">Keep editing</button>
+            </section>
+            <div class="notice">
+              The disclosure explains the scan. It does not claim the user’s
+              identity has been verified.
+            </div>
+            <button type="submit" id="publish">Publish revision</button>
+          </form>
+          <aside>
+            <section id="resetPanel" class="panel" hidden>
+              <p class="eyebrow">DESTRUCTIVE ACTION</p>
+              <h2>Reset environment</h2>
+              <p>
+                Delete all application records, Cognito users, uploaded image
+                versions, extracted/reviewed card data and pending jobs in the
+                selected environment.
+              </p>
+              <p>
+                Infrastructure, admin accounts, published settings and reset
+                history are preserved. Backups and logs retain their existing
+                retention. Do not deploy this environment during a reset.
+              </p>
+              <p id="resetStatus" role="status" aria-live="polite"></p>
+              <label
+                >Type the environment name to confirm<input
+                  id="resetConfirmation"
+                  autocomplete="off"
+                  spellcheck="false"
+              /></label>
+              <button type="button" id="resetEnvironment" disabled>
+                Reset environment
+              </button>
+              <button type="button" id="refreshReset">
+                Refresh reset status
+              </button>
+            </section>
+            <section class="panel">
+              <p class="eyebrow">AUDIT TRAIL</p>
+              <h2>Revision history</h2>
+              <p class="muted">
+                Restore a previous configuration as a new revision.
+              </p>
+              <ol id="history"></ol>
+            </section>
+            <form id="grant" class="panel" hidden>
+              <p class="eyebrow">ENVIRONMENT ACCESS</p>
+              <h2>Manage a grant</h2>
+              <label
+                >Admin Cognito subject<input
+                  id="subject"
+                  required
+                  maxlength="100" /></label
+              ><button id="inspectGrant" type="button">
+                Load current grant</button
+              ><label
+                >Current grant revision<input
+                  id="grantRevision"
+                  type="number"
+                  min="0"
+                  value="0"
+                  required /></label
+              ><label
+                ><input id="grantActive" type="checkbox" checked />
+                Active</label
+              ><label
+                ><input id="grantManage" type="checkbox" /> May manage
+                grants</label
+              ><button type="submit">Save grant</button>
+              <p class="muted">
+                Use revision 0 for a new grant. Revoked grants remain recorded;
+                setup never restores them.
+              </p>
+            </form>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <footer>
+      ATTESTRA BOND
+      <span>Private administration · Explicit access · Durable history</span>
+    </footer>
+  </body>
+</html>
