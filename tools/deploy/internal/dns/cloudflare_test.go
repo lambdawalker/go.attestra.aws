@@ -9,6 +9,16 @@ import (
 	"testing"
 )
 
+func TestNullRecordListingIsNotConfirmedAbsence(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, `{"success":true,"result":null}`) }))
+	defer s.Close()
+	c := NewClient("test")
+	c.BaseURL = s.URL
+	if _, err := c.Records(strings.Repeat("a", 32), "dev.example.com"); err == nil {
+		t.Fatal("incomplete DNS listing accepted as absence")
+	}
+}
+
 func TestDNSPlanPreservesExistingRecords(t *testing.T) {
 	txt := Record{Type: "TXT", Name: "_amazonses.qa.info.example.com", Content: "expected"}
 	cname := Record{Type: "CNAME", Name: "abc._domainkey.qa.info.example.com", Content: "abc.dkim.amazonses.com"}

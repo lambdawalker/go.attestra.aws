@@ -51,6 +51,8 @@ Run tests/vet separately in `infra`, `infra-index` and `tools/deploy`. CI also c
 
 Setup/deploy entry points remain `setup.sh`/`setup.bat` and `deploy.sh`/`deploy.bat`. Preview is available through the existing operation menu. These commands are real operator actions: inspect the selected account, region, environment, project/backend and domains before authorizing execution. They are not validation commands for this refactor.
 
+All-environment teardown is available through `deploy.bat -teardown -nuke` / `./deploy.sh -teardown -nuke`, using Composer's shared teardown engine. It removes environment stacks before shared admin/index, persists verification/retry inventory, and gates state-bucket/KMS recovery cleanup on verified earlier success. Add `-check` for read-only verification or `-fast-check` for only the artifacts last checked as remaining. See [nuke scope, reporting and recovery limits](tools/deploy/README.md#all-environment-nuke) before running it.
+
 ## Migration boundary
 
 The legacy [go.attestra.aws.auth](https://github.com/lambdawalker/go.attestra.aws.auth) remains operational. New project/state names, feature packaging, reset function prefix and secret delivery mean this is not an automatic in-place state move. Existing users, Cognito IDs, data and sessions do not transfer by changing imports.
