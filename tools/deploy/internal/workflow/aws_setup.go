@@ -480,7 +480,7 @@ func setupAWSRole(g *github.Client, repo, environment string, metadata repositor
 		if parseErr != nil || origin.Hostname() == "" {
 			return errors.New("deployment role labeling requires the saved application origin")
 		}
-		plan.Ownership = &ownership.Metadata{Application: "attestra", Environment: environment, Domain: origin.Hostname(), Feature: "deployment", Deployment: "attestra-" + environment}
+		plan.Ownership = &ownership.Metadata{Application: "attestra", Environment: environment, Domain: strings.ToLower(origin.Hostname()), Feature: "deployment", Deployment: "attestra-" + environment}
 	}
 	arn, err := applyAWSSetup(a, plan)
 	if err != nil {

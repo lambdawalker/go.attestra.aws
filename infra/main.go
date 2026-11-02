@@ -6,6 +6,7 @@ import (
 	"github.com/lambdawalker/go.infra.composer/ownership"
 	"net/url"
 	"path/filepath"
+	"strings"
 
 	auth "github.com/lambdawalker/go.apexfission.aws.auth/feature"
 	authinfra "github.com/lambdawalker/go.apexfission.aws.auth/infrastructure"
@@ -74,9 +75,9 @@ func deploy(ctx *pulumi.Context) error {
 	domain := cfg.Get("ownershipDomain")
 	if domain == "" {
 		origin, _ := url.Parse(cfg.Get("appOrigin"))
-		domain = origin.Hostname()
+		domain = strings.ToLower(origin.Hostname())
 	}
-	ctx, labels, err := awslabels.Install(ctx, ownership.Metadata{Application: "attestra", Environment: env.Name, Domain: domain, Feature: "application", Deployment: "attestra-" + env.Name})
+	ctx, labels, err := awslabels.Install(ctx, ownership.Metadata{Owner: "go.attestra.aws", Application: "attestra", Environment: env.Name, Domain: domain, Feature: "application", Deployment: "attestra-" + env.Name})
 	if err != nil {
 		return err
 	}

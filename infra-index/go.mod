@@ -3,6 +3,13 @@ module github.com/lambdawalker/go.attestra.aws/infra-index
 go 1.27.3
 
 require (
+	github.com/lambdawalker/go.infra.composer v0.0.0-20261102194707-9c7f065ec12b
+	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261102194734-25e4fbebbec0
+	github.com/pulumi/pulumi-aws/sdk/v7 v7.44.0
+	github.com/pulumi/pulumi/sdk/v3 v3.273.0
+)
+
+require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
@@ -113,11 +120,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
-)
-
-require (
-	github.com/lambdawalker/go.infra.composer v0.0.0-20261102153221-3a792e04a1ec
-	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261102153343-f42f8e3ede1d
-	github.com/pulumi/pulumi-aws/sdk/v7 v7.44.0
-	github.com/pulumi/pulumi/sdk/v3 v3.273.0
 )

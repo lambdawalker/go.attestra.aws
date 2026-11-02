@@ -1,0 +1,76 @@
+{
+  "Summary": {
+    "Domains": {
+      "API": "https://dev.api.attestrabond.com",
+      "Admin": "https://admin.attestrabond.com",
+      "App": "https://dev.attestrabond.com",
+      "Index": "https://index.attestrabond.com/v1/environments",
+      "Sender domain": "dev.info.attestrabond.com",
+      "Sender email": "verify@dev.info.attestrabond.com"
+    },
+    "Steps": {
+      "application": true,
+      "github": true,
+      "health": true,
+      "index-infra": true,
+      "prerequisites": true,
+      "publication": true,
+      "state": true,
+      "verification": true
+    },
+    "Previews": {
+      "Application full stack": {
+        "ObservedAt": "2026-11-02T20:25:10Z",
+        "Changes": {
+          "same": 117,
+          "update": 58
+        },
+        "Successful": true
+      },
+      "Application prerequisites": {
+        "ObservedAt": "2026-11-02T20:24:07Z",
+        "Changes": {
+          "same": 173,
+          "update": 2
+        },
+        "Successful": true
+      },
+      "Shared index full stack": {
+        "ObservedAt": "2026-11-02T20:21:46Z",
+        "Changes": {
+          "same": 47,
+          "update": 2
+        },
+        "Successful": true
+      },
+      "Shared index prerequisites": {
+        "ObservedAt": "2026-11-02T20:21:13Z",
+        "Changes": {
+          "same": 49
+        },
+        "Successful": true
+      }
+    }
+  },
+  "StackInitialized": true,
+  "Repository": "lambdawalker/go.attestra.aws",
+  "Environment": "dev",
+  "Region": "us-east-2",
+  "Backend": "s3://attestra-state-d467209e9ada5e0c",
+  "Stack": "dev",
+  "Settings": {
+    "authMode": "sso",
+    "baseDomain": "attestrabond.com",
+    "dnsFingerprint": "b5d1b1fb6c2b03e965fbd289aa8eb96eae8f164dd84a4a0e7e45e4a2ab3a9280",
+    "dnsProvider": "cloudflare",
+    "origin": "https://dev.attestrabond.com",
+    "profile": "attestra",
+    "roleName": "attestra-app-github-deploy-dev",
+    "route53": "",
+    "sender": "verify@dev.info.attestrabond.com",
+    "senderDomain": "dev.info.attestrabond.com"
+  },
+  "Stage": "complete",
+  "Account": "878093321137",
+  "RoleARN": "arn:aws:iam::878093321137:role/attestra-app-github-deploy-dev"
+}

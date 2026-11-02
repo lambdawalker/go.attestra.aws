@@ -58,7 +58,7 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 			t.Fatal(err)
 		}
 	}
-	cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "shared-runtime", "attestra-application:runtimeTableArn": "arn:aws:dynamodb:us-east-2:123456789012:table/shared-runtime", "attestra-application:appOrigin": "https://app.example.test", "attestra-application:senderDomain": "mail.example.test", "attestra-application:senderAddress": "verify@mail.example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32)))}
+	cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "shared-runtime", "attestra-application:runtimeTableArn": "arn:aws:dynamodb:us-east-2:123456789012:table/shared-runtime", "attestra-application:appOrigin": "https://App.Example.Test", "attestra-application:senderDomain": "mail.example.test", "attestra-application:senderAddress": "verify@mail.example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32)))}
 	data, _ := json.Marshal(cfg)
 	t.Setenv("PULUMI_CONFIG", string(data))
 	m := &monitor{}
@@ -97,6 +97,16 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 			if r.Name == name {
 				item = r
 			}
+		}
+		owner := "go.attestra.aws"
+		if want == "authentication" {
+			owner = "go.apexfission.aws.auth"
+		}
+		if want == "email-verification" {
+			owner = "go.apexfission.aws.verifyemail"
+		}
+		if description := item.Inputs["description"]; description.IsString() && description.StringValue() != "app.example.test DEV | "+owner {
+			t.Fatal("incorrect creating repository", name, description)
 		}
 		if item.Inputs["tags"].ObjectValue()["ic:feature"].StringValue() != want {
 			t.Fatal("feature attribution lost", name)
@@ -188,7 +198,7 @@ func TestMissingVerificationArchiveFailsWholeAppBeforeRegistration(t *testing.T)
 			t.Fatal(err)
 		}
 	}
-	cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "runtime", "attestra-application:runtimeTableArn": "arn:runtime", "attestra-application:appOrigin": "https://app.example.test", "attestra-application:senderDomain": "example.test", "attestra-application:senderAddress": "verify@example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString(make([]byte, 32))}
+	cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "runtime", "attestra-application:runtimeTableArn": "arn:runtime", "attestra-application:appOrigin": "https://App.Example.Test", "attestra-application:senderDomain": "example.test", "attestra-application:senderAddress": "verify@example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString(make([]byte, 32))}
 	data, _ := json.Marshal(cfg)
 	t.Setenv("PULUMI_CONFIG", string(data))
 	m := &monitor{}

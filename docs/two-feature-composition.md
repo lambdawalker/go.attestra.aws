@@ -1,6 +1,6 @@
 # App plus two features
 
-This integration branch composes authentication and isolated email verification through go.infra.composer. Main is unchanged until the branches are merged.
+The application composes authentication and isolated email verification through go.infra.composer.
 
 | Owner | Resources and behavior |
 |---|---|
@@ -22,9 +22,9 @@ go vet ./...
 
 Also run tests/race/vet in infra, infra-index and tools/deploy, then scripts/build.sh (or build.bat) and scripts/check_lambda_archives.py. Node admin tests and Python helper tests remain part of verification. These commands do not deploy AWS; the compose CLI's default runtime provider is a marked test fixture and is rejected in production environments.
 
-## Private feature dependency
+## Public feature dependencies
 
-The verification repository is private. Local builds need GitHub read access (for example gh auth setup-git) and GOPRIVATE=github.com/lambdawalker/go.apexfission.aws.verifyemail. CI needs a FEATURES_READ_TOKEN Actions secret with Contents: read on that repository. The application's ordinary GITHUB_TOKEN cannot read another private repository. Workflow authentication is configured before module downloads; no token is stored in source. Do not change repository visibility to work around missing credentials.
+Both feature repositories are public. Clean checkouts and CI download pinned Go modules without a feature-read token or private-module configuration.
 
 The dependencies are immutable commit pins; no sibling clone or cross-repository replacement is required. Same-repository replacements in nested modules are only for local development.
 
@@ -34,4 +34,4 @@ Keep the existing deployment running while testing a separate environment/prefix
 
 ## Ownership labels
 
-Native resources receive the seven canonical `ic:` tags where their provider schema supports tags, with safe description prefixes on mutable fields. No physical identifiers change. `resourceInventory` lists every registered AWS resource, including unsupported tagging cases and child identifiers. The application supplies per-feature scopes; standalone adapters derive validated project/environment/origin defaults. Use `ownershipDomain` in the application stack to override the hostname label; shared control-plane resources use environment `shared`. Legacy SES adapter resources remain explicitly inventory-only.
+Native resources receive the seven canonical `ic:` tags where their provider schema supports tags, with `domain ENV | repository` descriptions on mutable fields. No physical identifiers change. `resourceInventory` lists every registered AWS resource, including unsupported tagging cases and child identifiers. The application supplies per-feature scopes; standalone adapters derive validated project/environment/origin defaults. Use `ownershipDomain` in the application stack to override the hostname label; shared control-plane resources use environment `shared`. Legacy SES adapter resources remain explicitly inventory-only.

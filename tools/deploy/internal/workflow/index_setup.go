@@ -318,33 +318,33 @@ func (w *bootstrapWizard) prepareIndex(base, zone string) error {
 	if e != nil {
 		return e
 	}
-	var out map[string]string
-	if json.Unmarshal(outputs, &out) != nil || out["apiUrl"] == "" || out["domainTarget"] == "" || out["apiArn"] == "" || out["runtimeTableName"] == "" || out["runtimeTableArn"] == "" || out["adminPoolId"] == "" || out["adminLoginDomain"] == "" || out["adminDomainTarget"] == "" {
+	var out sharedStackOutputs
+	if json.Unmarshal(outputs, &out) != nil || out.APIURL == "" || out.DomainTarget == "" || out.APIARN == "" || out.RuntimeTableName == "" || out.RuntimeTableARN == "" || out.AdminPoolID == "" || out.AdminLoginDomain == "" || out.AdminDomainTarget == "" {
 		return errors.New("shared index outputs are incomplete")
 	}
-	if _, e = newIndexClient(w.r.env, out["apiUrl"], o.Region, w.environment); e != nil {
+	if _, e = newIndexClient(w.r.env, out.APIURL, o.Region, w.environment); e != nil {
 		return e
 	}
-	if out["indexUrl"] != "https://"+domain+"/v1/environments" {
+	if out.IndexURL != "https://"+domain+"/v1/environments" {
 		return errors.New("shared index URL differs from its configured domain")
 	}
 	if zone == "" {
-		if e = w.publishDNS(domain, []dns.Record{{Type: "CNAME", Name: domain, Content: out["domainTarget"]}}); e != nil {
+		if e = w.publishDNS(domain, []dns.Record{{Type: "CNAME", Name: domain, Content: out.DomainTarget}}); e != nil {
 			return e
 		}
 	}
 	if zone == "" {
-		if e = w.publishDNS(adminDomain, []dns.Record{{Type: "CNAME", Name: adminDomain, Content: out["adminDomainTarget"]}}); e != nil {
+		if e = w.publishDNS(adminDomain, []dns.Record{{Type: "CNAME", Name: adminDomain, Content: out.AdminDomainTarget}}); e != nil {
 			return e
 		}
 	}
-	if _, e = r.Exec(w.root, false, "go", "run", "./cmd/admin-setup", "-pool", out["adminPoolId"], "-login", out["adminLoginDomain"], "-table", out["runtimeTableName"], "-email", bootstrapEmail, "-environment", w.environment); e != nil {
+	if _, e = r.Exec(w.root, false, "go", "run", "./cmd/admin-setup", "-pool", out.AdminPoolID, "-login", out.AdminLoginDomain, "-table", out.RuntimeTableName, "-email", bootstrapEmail, "-environment", w.environment); e != nil {
 		return fmt.Errorf("admin identity setup incomplete: %w", e)
 	}
-	if e = waitIndexHTTP(out["apiUrl"] + "/v1/environments"); e != nil {
+	if e = waitIndexHTTP(out.APIURL + "/v1/environments"); e != nil {
 		return e
 	}
-	if e = waitIndexHTTP(out["indexUrl"]); e != nil {
+	if e = waitIndexHTTP(out.IndexURL); e != nil {
 		return e
 	}
 	b, _ := json.Marshal(map[string]string{"sourceHash": hash, "domain": domain, "zone": zone})
@@ -354,25 +354,25 @@ func (w *bootstrapWizard) prepareIndex(base, zone string) error {
 	if _, e = w.a.Call(nil, "s3api", "put-object", "--bucket", bucket, "--key", "bootstrap-ready.json", "--body", marker, "--expected-bucket-owner", w.account); e != nil {
 		return e
 	}
-	client, e := newIndexClient(w.r.env, out["apiUrl"], o.Region, w.environment)
+	client, e := newIndexClient(w.r.env, out.APIURL, o.Region, w.environment)
 	if e != nil {
 		return e
 	}
 	if e = w.r.acquireSetupIndex(w.o, client); e != nil {
 		return e
 	}
-	for k, v := range map[string]string{"indexApiUrl": out["apiUrl"], "indexRegion": o.Region, "indexApiArn": out["apiArn"], "indexUrl": out["indexUrl"], "runtimeTableName": out["runtimeTableName"], "runtimeTableArn": out["runtimeTableArn"]} {
+	for k, v := range map[string]string{"indexApiUrl": out.APIURL, "indexRegion": o.Region, "indexApiArn": out.APIARN, "indexUrl": out.IndexURL, "runtimeTableName": out.RuntimeTableName, "runtimeTableArn": out.RuntimeTableARN} {
 		if _, e = w.r.Exec(filepath.Join(w.root, "infra"), false, "pulumi", "config", "set", "attestra-application:"+k, "--stack", w.o.Stack, "--non-interactive", "--", v); e != nil {
 			return e
 		}
 	}
-	w.indexAPIArn = out["apiArn"]
+	w.indexAPIArn = out.APIARN
 	if w.memory.Summary.Domains == nil {
 		w.memory.Summary.Domains = map[string]string{}
 	}
-	w.memory.Summary.Domains["Index"] = out["indexUrl"]
-	w.memory.Summary.Domains["Admin"] = out["adminUrl"]
-	fmt.Println("✓ Shared index ready:", out["indexUrl"])
+	w.memory.Summary.Domains["Index"] = out.IndexURL
+	w.memory.Summary.Domains["Admin"] = out.AdminURL
+	fmt.Println("✓ Shared index ready:", out.IndexURL)
 	return nil
 }
 func indexPublicationPolicy(arn, environment string) map[string]any {
