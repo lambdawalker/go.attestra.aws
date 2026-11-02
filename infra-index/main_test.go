@@ -64,6 +64,9 @@ func TestIndexInfrastructure(t *testing.T) {
 			if e := pulumi.RunErr(deployIndex, pulumi.WithMocks("attestra-control-plane", "shared", m)); e != nil {
 				t.Fatal(e)
 			}
+			if got := m.resources["index-handler"].Inputs["description"].StringValue(); got != "index.example.com SHARED | go.attestra.aws" {
+				t.Fatal(got)
+			}
 			for _, name := range []string{"admin-handler", "index-handler", "admin-runtime", "environment-registry", "attestra-admins"} {
 				tags := m.resources[name].Inputs["tags"]
 				if !tags.IsObject() || tags.ObjectValue()["ic:environment"].StringValue() != "shared" {

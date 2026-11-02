@@ -28,7 +28,7 @@ func deployIndex(ctx *pulumi.Context) error {
 	if domainLabel == "" {
 		domainLabel = cfg.Require("domain")
 	}
-	ctx, labels, labelErr := awslabels.Install(ctx, ownership.Metadata{Application: "attestra", Environment: "shared", Domain: domainLabel, Feature: "control-plane", Deployment: "attestra-control-plane"})
+	ctx, labels, labelErr := awslabels.Install(ctx, ownership.Metadata{Owner: "go.attestra.aws", Application: "attestra", Environment: "shared", Domain: domainLabel, Feature: "control-plane", Deployment: "attestra-control-plane"})
 	if labelErr != nil {
 		return labelErr
 	}

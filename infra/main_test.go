@@ -85,6 +85,9 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 	}
 	for _, r := range m.resources {
 		if r.Name == "email-signup" {
+			if got := r.Inputs["description"].StringValue(); got != "app.example.test DEV | go.apexfission.aws.auth" {
+				t.Fatal(got)
+			}
 			tags := r.Inputs["tags"]
 			if !tags.IsObject() || tags.ObjectValue()["ic:application"].StringValue() != "attestra" || tags.ObjectValue()["ic:feature"].StringValue() != "authentication" {
 				t.Fatal("main app is missing ownership on its integrated email Lambda")

@@ -3,8 +3,8 @@ module github.com/lambdawalker/go.attestra.aws/infra-index
 go 1.27.3
 
 require (
-	github.com/lambdawalker/go.infra.composer v0.0.0-20261102153221-3a792e04a1ec
-	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261102155953-99cbb465c667
+	github.com/lambdawalker/go.infra.composer v0.0.0-20261102194707-9c7f065ec12b
+	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261102194734-25e4fbebbec0
 	github.com/pulumi/pulumi-aws/sdk/v7 v7.44.0
 	github.com/pulumi/pulumi/sdk/v3 v3.273.0
 )
