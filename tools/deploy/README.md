@@ -62,7 +62,7 @@ go -C tools/deploy build -o attestra-deploy ./
 
 Use `./...` when testing: the command package alone does not include the internal package tests. Tests use local fixtures and fake services; they do not deploy or tear down cloud environments.
 
-The package layout does not change CLI flags, checkpoint JSON, vault encryption or location, Pulumi configuration, Android export keys, or the GitHub workflow entry point. See [deployment instructions](../../docs/deployment.md), [first deployment](../../docs/first-deployment.md), and [teardown](../../docs/teardown.md).
+Existing deployment flags, checkpoint JSON, vault encryption/location, Pulumi configuration, Android export keys and the GitHub workflow entry point retain their behavior. The all-environment nuke flags are described above. See [migration and deployment](../../docs/migration.md) for the application project/state boundaries.
 
 Windows credential renewal uses an unquoted absolute helper path because the AWS Go SDK's `cmd.exe` invocation does not preserve quoted executable paths. Paths containing spaces use the Windows short-path alias. If that filesystem has short names disabled, the wizard stops with instructions to set `TEMP` and `TMP` to an existing path without spaces (for example, `C:\attestra-temp`) and rerun. If `GOTMPDIR` is set, update it too; for a prebuilt executable, move it to such a directory. It never changes the original AWS profile.
 
@@ -79,7 +79,7 @@ Their `.bak`, `.tmp` and `.lock` siblings stay alongside them. Stop any running 
 
 Keep `.attestra/` when resuming interrupted operations. These files contain no credential values but include infrastructure identifiers and recovery metadata; keep them private. The optional encrypted credential vault stays in its existing user-specific location. Build artifacts already live in `dist/`, public Android exports in `android-config/`, and Pulumi configuration stays in `infra/` and `infra-index/`.
 
-Shared-index teardown has its own [runbook](../../docs/teardown-index.md) and private `.attestra/teardown-index.<account>.<region>.local.json` checkpoint. It does not replace environment teardown.
+Shared-index teardown uses `-teardown-index` and its private `.attestra/teardown-index.<account>.<region>.local.json` checkpoint. It does not replace environment teardown. See [migration and deployment](../../docs/migration.md) for the current project/state names.
 
 ## Export values for the modular deployment wizard
 
