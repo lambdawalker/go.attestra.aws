@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/lambdawalker/go.infra.composer/adapters/pulumi/awslabels"
+	"github.com/lambdawalker/go.infra.composer/ownership"
+	"net/url"
 	"path/filepath"
 
 	auth "github.com/lambdawalker/go.apexfission.aws.auth/feature"
@@ -68,6 +71,15 @@ func deploy(ctx *pulumi.Context) error {
 	if _, err := application.EmailVerificationConfiguration(env.Name, application.AuthSettings{AppOrigin: cfg.Get("appOrigin"), SenderAddress: cfg.Get("senderAddress"), DiagnosticMode: cfg.Get("diagnosticMode") == "true", CaptureEnabled: cfg.Get("captureEnabled") != "false"}); err != nil {
 		return err
 	}
+	domain := cfg.Get("ownershipDomain")
+	if domain == "" {
+		origin, _ := url.Parse(cfg.Get("appOrigin"))
+		domain = origin.Hostname()
+	}
+	ctx, labels, err := awslabels.Install(ctx, ownership.Metadata{Application: "attestra", Environment: env.Name, Domain: domain, Feature: "application", Deployment: "attestra-" + env.Name})
+	if err != nil {
+		return err
+	}
 	var authentication *authinfra.Deployment
 	var verification *verifyinfra.Deployment
 	registry := adapter.Registry{
@@ -85,7 +97,11 @@ func deploy(ctx *pulumi.Context) error {
 			settings := opts
 			settings.RuntimeTableName = stringInput(inputs["runtime_table_name"])
 			settings.RuntimeTableARN = stringInput(inputs["runtime_table_arn"])
-			backend, err := authinfra.Deploy(ctx, cfg, settings)
+			scoped, err := awslabels.ForFeature(ctx, application.AuthenticationID)
+			if err != nil {
+				return adapter.Registered{}, err
+			}
+			backend, err := authinfra.Deploy(scoped, cfg, settings)
 			if err != nil {
 				return adapter.Registered{}, err
 			}
@@ -102,7 +118,11 @@ func deploy(ctx *pulumi.Context) error {
 			for k := range verify.IntegrationContract().Fields {
 				settings.Integration[k] = stringInput(inputs[k])
 			}
-			backend, err := verifyinfra.Deploy(ctx, cfg, settings)
+			scoped, err := awslabels.ForFeature(ctx, application.EmailVerificationID)
+			if err != nil {
+				return adapter.Registered{}, err
+			}
+			backend, err := verifyinfra.Deploy(scoped, cfg, settings)
 			if err != nil {
 				return adapter.Registered{}, err
 			}
@@ -127,6 +147,9 @@ func deploy(ctx *pulumi.Context) error {
 		return err
 	}
 	ctx.Export("verificationProofTable", verification.Table.Name)
+	if err := labels.Export(ctx, "resourceInventory"); err != nil {
+		return err
+	}
 	ctx.Export("sourceHash", pulumi.String(cfg.Get("sourceHash")))
 	return nil
 }

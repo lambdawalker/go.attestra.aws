@@ -31,3 +31,7 @@ The dependencies are immutable commit pins; no sibling clone or cross-repository
 ## Migration boundary
 
 Keep the existing deployment running while testing a separate environment/prefix. Existing proof transactions, budgets and in-flight confirmation state remain in the legacy table and old handlers; they are not transferred automatically. Drain them or define an explicit revision-safe migration before cutover. Authentication grants and enrollment facts retain their old table; new verification requests go to the separate proof table. Preserve the exact proof-key bytes for any supported old requests; pinned secret changes are not automatic rotation. API paths and JSON responses stay compatible. DNS, SES, users, sessions, state ownership and application reset permissions need a reviewed rollout. No AWS resources or data were changed by this refactor.
+
+## Ownership labels
+
+Native resources receive the seven canonical `ic:` tags where their provider schema supports tags, with safe description prefixes on mutable fields. No physical identifiers change. `resourceInventory` lists every registered AWS resource, including unsupported tagging cases and child identifiers. The application supplies per-feature scopes; standalone adapters derive validated project/environment/origin defaults. Use `ownershipDomain` in the application stack to override the hostname label; shared control-plane resources use environment `shared`. Legacy SES adapter resources remain explicitly inventory-only.

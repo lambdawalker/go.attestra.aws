@@ -68,6 +68,8 @@ github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102002106-cf767cbdf9
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102002106-cf767cbdf988/go.mod h1:g2qqqBQojSl/ssg+HroCiJJEuACUQyrwqGTDI9jhQ7U=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102002103-031063968df8 h1:BTbsSZeAzAhQrqtl6qisyvMq+Lw/LsZkOaXl270BN5Y=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102002103-031063968df8/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261102153221-3a792e04a1ec h1:MVo16LAftph+lnGcH5yVGBqSte8TsLkRsxw1hZ3UMnk=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261102153221-3a792e04a1ec/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=

@@ -62,9 +62,56 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 	data, _ := json.Marshal(cfg)
 	t.Setenv("PULUMI_CONFIG", string(data))
 	m := &monitor{}
-	if err := pulumi.RunErr(deploy, pulumi.WithMocks("attestra-application", "dev", m)); err != nil {
+	var inventoryRows []any
+	if err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		if err := deploy(ctx); err != nil {
+			return err
+		}
+		pulumi.All(ctx.GetCurrentExportMap()["resourceInventory"]).ApplyT(func(v []any) error { inventoryRows = v[0].([]any); return nil })
+		return nil
+	}, pulumi.WithMocks("attestra-application", "dev", m)); err != nil {
 		t.Fatal(err)
 	}
+	awsCount := 0
+	for _, r := range m.resources {
+		if strings.HasPrefix(r.TypeToken, "aws:") {
+			awsCount++
+		}
+	}
+	if len(inventoryRows) != awsCount {
+		t.Fatalf("inventory omitted native resources: got %d, want %d", len(inventoryRows), awsCount)
+	}
+	serialized, _ := json.Marshal(inventoryRows)
+	if strings.Contains(string(serialized), cfg["attestra-application:proofKey"]) {
+		t.Fatal("inventory exposed proof key")
+	}
+	for _, row := range inventoryRows {
+		r := row.(map[string]any)
+		if r["type"] == "aws:apigatewayv2/route:Route" && r["parentId"] == "" {
+			t.Fatal("route lost API parent")
+		}
+	}
+	for name, want := range map[string]string{"email-signup": "email-verification", "email-http-api": "authentication", "environment-reset": "application"} {
+		var item pulumi.MockResourceArgs
+		for _, r := range m.resources {
+			if r.Name == name {
+				item = r
+			}
+		}
+		if item.Inputs["tags"].ObjectValue()["ic:feature"].StringValue() != want {
+			t.Fatal("feature attribution lost", name)
+		}
+	}
+	for _, r := range m.resources {
+		switch r.TypeToken {
+		case "aws:lambda/function:Function", "aws:dynamodb/table:Table", "aws:iam/role:Role", "aws:apigatewayv2/api:Api", "aws:apigatewayv2/stage:Stage", "aws:sqs/queue:Queue", "aws:s3/bucketV2:BucketV2", "aws:secretsmanager/secret:Secret", "aws:cognito/userPool:UserPool":
+			tags := r.Inputs["tags"]
+			if !tags.IsObject() || tags.ObjectValue()["ic:application"].StringValue() != "attestra" {
+				t.Fatalf("missing ownership tags on %s (%s)", r.Name, r.TypeToken)
+			}
+		}
+	}
+
 	count := 0
 	for _, r := range m.resources {
 		if r.TypeToken == "aws:lambda/function:Function" {
