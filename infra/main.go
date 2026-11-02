@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/lambdawalker/go.infra.composer/adapters/pulumi/awslabels"
+	"github.com/lambdawalker/go.infra.composer/ownership"
+	"net/url"
 	"path/filepath"
+	"strings"
 
 	auth "github.com/lambdawalker/go.apexfission.aws.auth/feature"
 	authinfra "github.com/lambdawalker/go.apexfission.aws.auth/infrastructure"
@@ -59,6 +63,15 @@ func deploy(ctx *pulumi.Context) error {
 	if err := authinfra.Validate(cfg, opts); err != nil {
 		return err
 	}
+	domain := cfg.Get("ownershipDomain")
+	if domain == "" {
+		origin, _ := url.Parse(cfg.Get("appOrigin"))
+		domain = strings.ToLower(origin.Hostname())
+	}
+	ctx, labels, err := awslabels.Install(ctx, ownership.Metadata{Application: "attestra", Environment: env.Name, Domain: domain, Feature: "application", Deployment: "attestra-" + env.Name})
+	if err != nil {
+		return err
+	}
 	registry := adapter.Registry{
 		application.RuntimeKind: func(ctx *pulumi.Context, name string, inputs pulumi.Map, options ...pulumi.ResourceOption) (adapter.Registered, error) {
 			state := &runtimeReference{}
@@ -74,7 +87,11 @@ func deploy(ctx *pulumi.Context) error {
 			settings := opts
 			settings.RuntimeTableName = stringInput(inputs["runtime_table_name"])
 			settings.RuntimeTableARN = stringInput(inputs["runtime_table_arn"])
-			backend, err := authinfra.Deploy(ctx, cfg, settings)
+			scoped, err := awslabels.ForFeature(ctx, application.AuthenticationID)
+			if err != nil {
+				return adapter.Registered{}, err
+			}
+			backend, err := authinfra.Deploy(scoped, cfg, settings)
 			if err != nil {
 				return adapter.Registered{}, err
 			}
@@ -82,6 +99,9 @@ func deploy(ctx *pulumi.Context) error {
 		},
 	}
 	if _, err := adapter.Execute(ctx, plan, registry); err != nil {
+		return err
+	}
+	if err := labels.Export(ctx, "resourceInventory"); err != nil {
 		return err
 	}
 	ctx.Export("sourceHash", pulumi.String(cfg.Get("sourceHash")))

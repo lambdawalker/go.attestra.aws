@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lambdawalker/go.infra.composer/ownership"
 	"io"
 	"net/http"
 	"net/mail"
@@ -223,6 +224,18 @@ func (w *bootstrapWizard) prepareIndex(base, zone string) error {
 	}
 	if e := validateBootstrapApp("https://"+domain, domain, "verify@"+domain); e != nil {
 		return fmt.Errorf("invalid shared index domain: %w", e)
+	}
+	sharedDomain := cfg["attestra-control-plane:ownershipDomain"].Value
+	if sharedDomain == "" {
+		sharedDomain = domain
+	}
+	for _, state := range []struct {
+		options    options
+		deployment string
+	}{{w.o, "attestra-state"}, {o, "attestra-control-plane-state"}} {
+		if e := labelStateBucket(w.a, state.options, w.account, ownership.Metadata{Application: "attestra", Environment: "shared", Domain: sharedDomain, Feature: "deployment", Deployment: state.deployment}); e != nil {
+			return e
+		}
 	}
 	if zone == "" {
 		if e = w.ensureCloudflare(); e != nil {

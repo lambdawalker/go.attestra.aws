@@ -24,7 +24,7 @@ func deploymentPolicies(account string, o options) map[string]any {
 	for _, name := range []string{"app-config", "signup", "resend", "confirm", "challenge", "passkeyoptions", "passkeycomplete", "auth-email-start", "auth-email-complete", "auth-passkey-start", "auth-passkey-complete", "auth-refresh", "auth-status", "auth-password-start", "auth-password-complete", "auth-password-set", "capture", "capture-dispatcher", "capture-worker", "environment-reset"} {
 		roles = append(roles, "arn:aws:iam::"+account+":role/"+name+"-role-*")
 	}
-	iam := statement([]string{"iam:CreateRole", "iam:GetRole", "iam:UpdateRole", "iam:DeleteRole", "iam:UpdateAssumeRolePolicy", "iam:ListRolePolicies", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:TagRole", "iam:UntagRole", "iam:ListRoleTags"}, roles)
+	iam := statement([]string{"iam:CreateRole", "iam:GetRole", "iam:UpdateRole", "iam:UpdateRoleDescription", "iam:DeleteRole", "iam:UpdateAssumeRolePolicy", "iam:ListRolePolicies", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:TagRole", "iam:UntagRole", "iam:ListRoleTags"}, roles)
 	attach := statement([]string{"iam:AttachRolePolicy", "iam:DetachRolePolicy"}, roles)
 	attach["Condition"] = map[string]any{"ArnEquals": map[string]string{"iam:PolicyARN": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"}}
 	pass := statement([]string{"iam:PassRole"}, roles)
