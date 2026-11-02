@@ -6,10 +6,29 @@ This Go module contains the setup, deployment, credential management, health-che
 go -C tools/deploy run . -bootstrap
 go -C tools/deploy run . -teardown
 go -C tools/deploy run . -teardown-index
+go -C tools/deploy run . -teardown -nuke
+go -C tools/deploy run . -teardown -nuke -check
+go -C tools/deploy run . -teardown -nuke -fast-check
 go -C tools/deploy run . -manage-credentials
 ```
 
 The launchers supply the repository path explicitly. Direct commands retain the existing `-repo-root` option and default. `main.go` only calls the workflow entry point and handles process exit. GitHub Actions uses the same executable.
+
+## All-environment nuke
+
+From the repository root use `deploy.bat -teardown -nuke` or `./deploy.sh -teardown -nuke`. This delegates orchestration to Composer's `teardown.Engine`; the application adapter supplies account-bound environment discovery and the cleanup that lives outside Pulumi. No environment target picker is used. An optional vault prompt selects credentials only, not deletion scope. Administrator login and typed repository/account confirmation are required before destruction.
+
+Discovery combines GitHub environment variables, local setup/teardown records, canonical ownership tags on account-owned S3 state buckets, and the saved Composer report. Every discovered `attestra-application` environment is attempted before shared `attestra-control-plane` admin/index stacks. Missing artifacts count as success; malformed/inaccessible discovery evidence does not authorize an incomplete scope. Distinct project/backend passphrases are requested when needed and stay in memory. The feature runtime itself owns no application-wide teardown flow.
+
+The app adapter also captures exact Cloudflare DNS records, immutable repository-bound deployment roles, GitHub environments and the known bootstrap marker keys. These identifiers are persisted before deletion. Active/foreign bootstrap locks, unknown historical marker payloads, ambiguous DNS, shared roles and unverifiable ownership remain protected. The AWS caller's own deployment role is never deleted. Marker history cleanup is limited to exact validated app-owned keys under the existing conditional bootstrap lease; generic Composer state/recovery checks remain in force.
+
+State buckets and KMS keys are processed only after earlier cleanup is verified. KMS use does not establish exclusive ownership: the operator must independently confirm each customer-managed key's exclusivity before it can be scheduled for deletion. Unapproved keys retain recovery data. Secrets Manager scheduled deletion and retained SYSTEM/AWS Backup data remain present until actual absence can be verified; this may keep a nuke incomplete after its stack has been removed. No secret values are read or saved in the report.
+
+The private `.attestra/nuke.<account>.local.json` report shows status, artifact type, zone/region, environment and identifiers. It is Composer's report format, not an automatic import of the legacy auth repository's nuke receipt. Rerun nuke to retry cleanup with its surviving inventory. Credential vaults and local deployment/setup records remain private and are retained; a nuke is not a source-code or credential wipe.
+
+Use `-teardown -nuke -check` for read-only verification of the saved inventory. `-teardown -nuke -fast-check` requires a previous check and queries only the latest `REMAINS` entries. Skipped evidence keeps its timestamp, and skipped unknowns do not become success. Checks do not discover new environment targets or perform deletion; resource-scoped DNS zone lookup can recover missing zone evidence after a token is supplied. Reports containing only external artifacts can still be checked after stacks disappear.
+
+Keep all deployments suspended during nuke. A local report lock blocks other operator flows in this checkout; active GitHub deployments are checked before destructive phases, and marker cleanup uses the shared bootstrap lease. These guards are not an account-wide distributed nuke lock across other checkouts or tools. Other deployments must remain stopped until cleanup is finished.
 
 ## Package map
 
