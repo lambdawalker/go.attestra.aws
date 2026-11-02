@@ -3,8 +3,10 @@ module github.com/lambdawalker/go.attestra.aws/infra
 go 1.27.3
 
 require (
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261101213142-091b242110c7
-	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261102194849-475cf218747b
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102205618-1e739655eb8c
+	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261102205618-1e739655eb8c
+	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413
+	github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261102205602-8732a1338413
 	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
 	github.com/lambdawalker/go.infra.composer v0.0.0-20261102194707-9c7f065ec12b
 	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261102194734-25e4fbebbec0

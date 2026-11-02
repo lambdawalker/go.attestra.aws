@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	auth "github.com/lambdawalker/go.apexfission.aws.auth/feature"
@@ -22,7 +23,7 @@ func TestApplicationInjectsAuthenticationAndAdditionalFeature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(p.Order(), []string{"application-runtime.existing", "authentication.backend", "signature.verify"}) {
+	if !reflect.DeepEqual(p.Order(), []string{"application-runtime.existing", "authentication.backend", "email-verification.backend", "signature.verify"}) {
 		t.Fatal(p.Order())
 	}
 	if p.Bindings()[0].Origin != "explicit" {
@@ -53,7 +54,7 @@ func TestAppConfigurationUsesDeclaredSecureMechanisms(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(p.Bindings()) != 5 {
+	if len(p.Bindings()) != 3 {
 		t.Fatal(p)
 	}
 	for _, b := range p.Bindings() {
@@ -63,5 +64,46 @@ func TestAppConfigurationUsesDeclaredSecureMechanisms(t *testing.T) {
 	}
 	if _, err := AuthenticationConfiguration("dev", AuthSettings{AppOrigin: "https://user:password@example.test", SenderAddress: "verify@example.test"}); err == nil {
 		t.Fatal("credential-bearing public origin accepted")
+	}
+}
+
+func TestEmailVerificationIsASeparateExplicitFeature(t *testing.T) {
+	app, err := New(binding())
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := app.Plan(composer.Environment{Name: "qa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Resources()) != 3 {
+		t.Fatalf("expected shared state plus two independent features, got %d", len(p.Resources()))
+	}
+	found := false
+	for _, b := range p.Bindings() {
+		if strings.HasPrefix(b.Consumer, "email-verification.") {
+			found = true
+			if b.Origin != "explicit" {
+				t.Fatal("implicit email integration")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("missing verification integration")
+	}
+}
+
+func TestVerificationConfigurationOwnsSecretAndDiagnostics(t *testing.T) {
+	p, err := EmailVerificationConfiguration("dev", AuthSettings{AppOrigin: "https://app.example.test", SenderAddress: "verify@example.test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Bindings()) != 4 {
+		t.Fatal(p)
+	}
+	for _, b := range p.Bindings() {
+		if b.Property == "proof_key" && (b.Source.Storage != "secretsmanager" || !b.Source.SecretDelivery || b.Initial != nil) {
+			t.Fatal("insecure verification key binding")
+		}
 	}
 }

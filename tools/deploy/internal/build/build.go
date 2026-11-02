@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/lambdawalker/go.apexfission.aws.auth/artifacts"
+	"github.com/lambdawalker/go.attestra.aws/artifacts"
 
 	awsenv "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/aws"
 )

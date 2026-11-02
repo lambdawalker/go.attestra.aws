@@ -59,6 +59,10 @@ The legacy [go.attestra.aws.auth](https://github.com/lambdawalker/go.attestra.aw
 
 Read [migration and deployment](docs/migration.md) before using a live target. No deployed stack files or credentials are checked in. Modules are pinned to immutable implementation commits; version tags and production release status are not implied.
 
+## Authentication and email verification
+
+The application composes [isolated email verification](https://github.com/lambdawalker/go.apexfission.aws.verifyemail). See [composition and testing](docs/two-feature-composition.md). Both feature manifests are built from pinned module dependencies, and application reset includes verification writers and its separate proof table.
 ## Deployment resource labels
 
-Main deploys ownership tags, safe descriptions and resource inventory for the environment backend and shared admin/index. See [ownership and rollout](docs/resource-ownership.md). The two-feature email extraction remains separate from main.
+Main deploys ownership tags, safe descriptions and resource inventory for the environment backend and shared admin/index. See [ownership and rollout](docs/resource-ownership.md).
+

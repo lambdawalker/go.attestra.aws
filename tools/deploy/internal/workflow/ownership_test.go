@@ -41,9 +41,9 @@ func TestStateOwnershipPreservesTagsAndRejectsForeignProject(t *testing.T) {
 		t.Fatal("wrote after conflict")
 	}
 }
-func TestOwnershipIAMIncludesMutableDescriptions(t *testing.T) {
+func TestOwnershipIAMIncludesMutableDescriptionsAndVerificationResources(t *testing.T) {
 	text := policyJSON(deploymentPolicies("123456789012", testOptions()))
-	for _, required := range []string{"iam:UpdateRoleDescription"} {
+	for _, required := range []string{"iam:UpdateRoleDescription", "verifyemail-signup-role-*", "table/verification-proofs-*"} {
 		if !strings.Contains(text, required) {
 			t.Fatal("ownership deployment permission missing", required)
 		}

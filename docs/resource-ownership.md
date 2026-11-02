@@ -2,9 +2,9 @@
 
 The main deployment uses the merged infra.composer ownership helpers. The environment backend and shared admin/index deployment apply canonical ic:application/environment/domain/feature/component/deployment/managed-by tags to resources supported by the provider schema, portable mutable descriptions and metadata-only resourceInventory outputs.
 
-Main retains the integrated authentication feature, including signup/resend/confirm and its existing 20 backend Lambda archives. The separate email-verification feature remains on the two-feature integration branches; main has no dependency on that private repository and needs no FEATURES_READ_TOKEN.
+Main composes authentication and isolated email verification, preserving 20 backend Lambda archives. Both feature repositories are public; no feature-read token is required.
 
-Environment resources use the selected environment and an application-origin hostname by default. Shared admin/index and state use environment shared and the shared hostname. Set ownershipDomain in the relevant Pulumi stack to choose an explicit hostname label. Names, resource identities, routes, grants, reset behavior and secret delivery are preserved. IAM managed-policy descriptions are not rewritten; legacy SES adapter resources are explicitly inventory-only.
+Environment resources use the selected environment and an application-origin hostname by default. Shared admin/index and state use environment shared and the shared hostname. Set ownershipDomain in the relevant Pulumi stack to choose an explicit hostname label. The labeling convention does not rename resources. See the [two-feature migration boundary](two-feature-composition.md#migration-boundary) before rolling out the verification extraction to an existing deployment. IAM managed-policy descriptions are not rewritten; legacy SES adapter resources are explicitly inventory-only.
 
 The bootstrap reads and merges state-bucket tags, rejects conflicting ownership and labels its setup-owned deployment role. External account-wide OIDC/KMS resources are not claimed. Reconcile out-of-band operator tags through desired configuration or AWS provider ignoreTags before rollout. A reviewed preview is required before applying metadata changes to a live account.
 
