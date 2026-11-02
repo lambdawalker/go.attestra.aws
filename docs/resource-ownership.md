@@ -9,3 +9,5 @@ Environment resources use the selected environment and an application-origin hos
 The bootstrap reads and merges state-bucket tags, rejects conflicting ownership and labels its setup-owned deployment role. External account-wide OIDC/KMS resources are not claimed. Reconcile out-of-band operator tags through desired configuration or AWS provider ignoreTags before rollout. A reviewed preview is required before applying metadata changes to a live account.
 
 Inspect the resourceInventory stack output for owned native identifiers and parent references. Inventory and tags aid discovery; they do not authorize deletion. See the [standard](https://github.com/lambdawalker/design.infra.composer/blob/main/docs/resource-ownership.md).
+
+Descriptions use `domain ENV | owner`, with uppercase environment and the creating repository: `index.attestrabond.com SHARED | go.attestra.aws` and `dev.attestrabond.com DEV | go.apexfission.aws.auth`. Resource names and purposes are omitted from descriptions; tags and inventory keep their existing component details.
