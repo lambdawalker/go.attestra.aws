@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lambdawalker/go.apexfission.aws.auth/artifacts"
+	"github.com/lambdawalker/go.attestra.aws/artifacts"
 )
 
 func TestLambdaBuildsDeduplicatesSignin(t *testing.T) {
@@ -46,7 +46,7 @@ func TestLambdaBuildsBoundedAndCancels(t *testing.T) {
 				}
 			}
 			started <- struct{}{}
-			if strings.HasSuffix(job.source, "/cmd/signup") {
+			if job.source == lambdaBuilds()[0].source {
 				<-release
 				return failure
 			}
@@ -86,7 +86,7 @@ func TestLambdaBuildsUseFeatureManifestAndLocalAdmin(t *testing.T) {
 		if sources[artifact.Name] != artifact.Package {
 			t.Errorf("%s: got %q want manifest package %q", artifact.Name, sources[artifact.Name], artifact.Package)
 		}
-		if !strings.HasPrefix(sources[artifact.Name], "github.com/lambdawalker/go.apexfission.aws.auth/cmd/") {
+		if sources[artifact.Name] != artifact.Package {
 			t.Errorf("feature command must be module-aware: %q", sources[artifact.Name])
 		}
 	}

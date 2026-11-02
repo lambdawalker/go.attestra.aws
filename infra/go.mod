@@ -3,15 +3,6 @@ module github.com/lambdawalker/go.attestra.aws/infra
 go 1.27.3
 
 require (
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261101213142-091b242110c7
-	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261101213142-091b242110c7
-	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
-	github.com/lambdawalker/go.infra.composer v0.0.0-20261101203048-2628bc245bc6
-	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261101203048-2628bc245bc6
-	github.com/pulumi/pulumi/sdk/v3 v3.273.0
-)
-
-require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
@@ -137,3 +128,14 @@ require (
 )
 
 replace github.com/lambdawalker/go.attestra.aws => ..
+
+require (
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102002106-cf767cbdf988
+	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261102002106-cf767cbdf988
+	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102002103-031063968df8
+	github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261102002103-031063968df8
+	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
+	github.com/lambdawalker/go.infra.composer v0.0.0-20261101203048-2628bc245bc6
+	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261101203048-2628bc245bc6
+	github.com/pulumi/pulumi/sdk/v3 v3.273.0
+)

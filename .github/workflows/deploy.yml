@@ -42,6 +42,8 @@ jobs:
       actions: read
       id-token: write
     env:
+      GOPRIVATE: github.com/lambdawalker/go.apexfission.aws.verifyemail
+      FEATURES_READ_TOKEN: ${{ secrets.FEATURES_READ_TOKEN }}
       AWS_REGION: ${{ vars.AWS_REGION }}
       AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
       AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
@@ -75,6 +77,10 @@ jobs:
           [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
           [[ "$OPERATION" == preview || "$OPERATION" == deploy || "$OPERATION" == publish ]]
           if [[ "$OPERATION" == publish ]]; then [[ "$RECEIPT_RUN_ID" =~ ^[0-9]+$ ]]; fi
+      - name: Configure private feature read access
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/private-modules.sh
       - uses: actions/setup-go@v7.0.0
         with:
           go-version: '1.27.3'

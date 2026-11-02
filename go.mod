@@ -3,17 +3,6 @@ module github.com/lambdawalker/go.attestra.aws
 go 1.27.3
 
 require (
-	github.com/aws/aws-lambda-go v1.55.1
-	github.com/aws/aws-sdk-go-v2 v1.47.5
-	github.com/aws/aws-sdk-go-v2/config v1.33.5
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.21.7
-	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.75.6
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.69.1
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261101213142-091b242110c7
-	github.com/lambdawalker/go.infra.composer v0.0.0-20261101203048-2628bc245bc6
-)
-
-require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.5 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.8 // indirect
@@ -38,11 +27,23 @@ tool (
 	github.com/lambdawalker/go.apexfission.aws.auth/cmd/capture-dispatcher
 	github.com/lambdawalker/go.apexfission.aws.auth/cmd/capture-worker
 	github.com/lambdawalker/go.apexfission.aws.auth/cmd/challenge
-	github.com/lambdawalker/go.apexfission.aws.auth/cmd/confirm
 	github.com/lambdawalker/go.apexfission.aws.auth/cmd/environment-reset
 	github.com/lambdawalker/go.apexfission.aws.auth/cmd/passkeycomplete
 	github.com/lambdawalker/go.apexfission.aws.auth/cmd/passkeyoptions
-	github.com/lambdawalker/go.apexfission.aws.auth/cmd/resend
 	github.com/lambdawalker/go.apexfission.aws.auth/cmd/signin
-	github.com/lambdawalker/go.apexfission.aws.auth/cmd/signup
+	github.com/lambdawalker/go.apexfission.aws.verifyemail/cmd/confirm
+	github.com/lambdawalker/go.apexfission.aws.verifyemail/cmd/resend
+	github.com/lambdawalker/go.apexfission.aws.verifyemail/cmd/signup
+)
+
+require (
+	github.com/aws/aws-lambda-go v1.55.1
+	github.com/aws/aws-sdk-go-v2 v1.47.5
+	github.com/aws/aws-sdk-go-v2/config v1.33.5
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.21.7
+	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.75.6
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.69.1
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102002106-cf767cbdf988
+	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102002103-031063968df8
+	github.com/lambdawalker/go.infra.composer v0.0.0-20261101203048-2628bc245bc6
 )
