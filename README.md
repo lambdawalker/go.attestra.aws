@@ -56,3 +56,7 @@ Setup/deploy entry points remain `setup.sh`/`setup.bat` and `deploy.sh`/`deploy.
 The legacy [go.attestra.aws.auth](https://github.com/lambdawalker/go.attestra.aws.auth) remains operational. New project/state names, feature packaging, reset function prefix and secret delivery mean this is not an automatic in-place state move. Existing users, Cognito IDs, data and sessions do not transfer by changing imports.
 
 Read [migration and deployment](docs/migration.md) before using a live target. No deployed stack files or credentials are checked in. Modules are pinned to immutable implementation commits; version tags and production release status are not implied.
+
+## Deployment resource labels
+
+Main deploys ownership tags, safe descriptions and resource inventory for the environment backend and shared admin/index. See [ownership and rollout](docs/resource-ownership.md). The two-feature email extraction remains separate from main.

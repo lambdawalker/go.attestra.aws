@@ -9,6 +9,7 @@ import (
 )
 
 type setupFake struct {
+	extraTags                map[string]string
 	subject                  string
 	environment              string
 	provider, audience, role bool
@@ -51,6 +52,9 @@ func (f *setupFake) Call(result any, args ...string) (bool, error) {
 		if f.owned {
 			tags = append(tags, map[string]string{"Key": "attestra-setup", "Value": "github-" + f.environment}, map[string]string{"Key": "attestra-subject", "Value": f.subject})
 		}
+		for key, value := range f.extraTags {
+			tags = append(tags, map[string]string{"Key": key, "Value": value})
+		}
 		decode(map[string]any{"Role": map[string]any{"Arn": "arn:aws:iam::123456789012:role/attestra-github-deploy", "AssumeRolePolicyDocument": f.trust, "Tags": tags}})
 	case "get-role-policy":
 		p, ok := f.policies[value("--policy-name")]
@@ -66,6 +70,17 @@ func (f *setupFake) Call(result any, args ...string) (bool, error) {
 			f.audience = true
 		case "add-client-id-to-open-id-connect-provider":
 			f.audience = true
+		case "tag-role":
+			if f.extraTags == nil {
+				f.extraTags = map[string]string{}
+			}
+			var tags []struct{ Key, Value string }
+			if err := json.Unmarshal([]byte(value("--tags")), &tags); err != nil {
+				return false, err
+			}
+			for _, tag := range tags {
+				f.extraTags[tag.Key] = tag.Value
+			}
 		case "create-role":
 			for _, arg := range args {
 				if strings.HasPrefix(arg, "Key=attestra-setup,Value=github-") {

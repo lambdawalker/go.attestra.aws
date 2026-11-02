@@ -64,6 +64,13 @@ func TestIndexInfrastructure(t *testing.T) {
 			if e := pulumi.RunErr(deployIndex, pulumi.WithMocks("attestra-control-plane", "shared", m)); e != nil {
 				t.Fatal(e)
 			}
+			for _, name := range []string{"admin-handler", "index-handler", "admin-runtime", "environment-registry", "attestra-admins"} {
+				tags := m.resources[name].Inputs["tags"]
+				if !tags.IsObject() || tags.ObjectValue()["ic:environment"].StringValue() != "shared" {
+					t.Fatalf("shared control-plane ownership missing on %s", name)
+				}
+			}
+
 			if m.resources["index-write"].Inputs["authorizationType"].StringValue() != "AWS_IAM" {
 				t.Fatal("unauthenticated registry writes")
 			}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lambdawalker/go.infra.composer/ownership"
 	"net/url"
 	"os"
 	"os/exec"
@@ -67,6 +68,7 @@ type awsRoleSnapshot struct {
 	Tags                     []struct{ Key, Value string }
 }
 type awsSetupPlan struct {
+	Ownership                                  *ownership.Metadata
 	Account, RoleName, Subject, Environment    string
 	ProviderExists, AudienceExists, RoleExists bool
 	Role                                       awsRoleSnapshot
@@ -135,6 +137,18 @@ func sortedPolicyNames(p map[string]any) []string {
 	return names
 }
 func applyAWSSetup(a awsenv.API, p awsSetupPlan) (string, error) {
+	var ownershipTags map[string]string
+	existingTags := map[string]string{}
+	for _, tag := range p.Role.Tags {
+		existingTags[tag.Key] = tag.Value
+	}
+	if p.Ownership != nil {
+		var err error
+		ownershipTags, err = p.Ownership.MergeTags(existingTags, "github-deployment-role")
+		if err != nil {
+			return "", err
+		}
+	}
 	provider := "arn:aws:iam::" + p.Account + ":oidc-provider/token.actions.githubusercontent.com"
 	write := func(args ...string) error {
 		found, e := a.Call(nil, args...)
@@ -165,6 +179,25 @@ func applyAWSSetup(a awsenv.API, p awsSetupPlan) (string, error) {
 			return "", e
 		}
 	}
+	if p.Ownership != nil && !reflect.DeepEqual(existingTags, ownershipTags) {
+		merged := ownershipTags
+		keys := make([]string, 0, len(merged))
+		for key := range merged {
+			keys = append(keys, key)
+		}
+		slices.Sort(keys)
+		tags := []map[string]string{}
+		for _, key := range keys {
+			tags = append(tags, map[string]string{"Key": key, "Value": merged[key]})
+		}
+		body, err := json.Marshal(tags)
+		if err != nil {
+			return "", err
+		}
+		if err := write("iam", "tag-role", "--role-name", p.RoleName, "--tags", string(body)); err != nil {
+			return "", err
+		}
+	}
 	for _, name := range sortedPolicyNames(p.Policies) {
 		if sameJSON(p.Policies[name], p.ExistingPolicies[name]) {
 			continue
@@ -184,6 +217,17 @@ func applyAWSSetup(a awsenv.API, p awsSetupPlan) (string, error) {
 	for n, policy := range p.Policies {
 		if !sameJSON(policy, verified.ExistingPolicies[n]) {
 			return "", fmt.Errorf("AWS policy %s verification failed; rerun setup", n)
+		}
+	}
+	if p.Ownership != nil {
+		actual := map[string]string{}
+		for _, tag := range verified.Role.Tags {
+			actual[tag.Key] = tag.Value
+		}
+		for key, value := range ownershipTags {
+			if actual[key] != value {
+				return "", errors.New("deployment role ownership tag verification failed; rerun setup")
+			}
 		}
 	}
 	return verified.Role.Arn, nil
@@ -430,6 +474,13 @@ func setupAWSRole(g *github.Client, repo, environment string, metadata repositor
 		if err = ui.Confirm("Apply these AWS IAM changes in account " + id.Account + "?"); err != nil {
 			return err
 		}
+	}
+	if bootstrap != nil {
+		origin, parseErr := url.Parse(bootstrap.memory.Summary.Domains["App"])
+		if parseErr != nil || origin.Hostname() == "" {
+			return errors.New("deployment role labeling requires the saved application origin")
+		}
+		plan.Ownership = &ownership.Metadata{Application: "attestra", Environment: environment, Domain: strings.ToLower(origin.Hostname()), Feature: "deployment", Deployment: "attestra-" + environment}
 	}
 	arn, err := applyAWSSetup(a, plan)
 	if err != nil {

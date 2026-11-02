@@ -56,12 +56,40 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 			t.Fatal(err)
 		}
 	}
-	cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "shared-runtime", "attestra-application:runtimeTableArn": "arn:aws:dynamodb:us-east-2:123456789012:table/shared-runtime", "attestra-application:appOrigin": "https://app.example.test", "attestra-application:senderDomain": "mail.example.test", "attestra-application:senderAddress": "verify@mail.example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32)))}
+	cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "shared-runtime", "attestra-application:runtimeTableArn": "arn:aws:dynamodb:us-east-2:123456789012:table/shared-runtime", "attestra-application:appOrigin": "https://App.Example.Test", "attestra-application:senderDomain": "mail.example.test", "attestra-application:senderAddress": "verify@mail.example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32)))}
 	data, _ := json.Marshal(cfg)
 	t.Setenv("PULUMI_CONFIG", string(data))
 	m := &monitor{}
-	if err := pulumi.RunErr(deploy, pulumi.WithMocks("attestra-application", "dev", m)); err != nil {
+	var inventory []any
+	if err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		if err := deploy(ctx); err != nil {
+			return err
+		}
+		pulumi.All(ctx.GetCurrentExportMap()["resourceInventory"]).ApplyT(func(v []any) error { inventory = v[0].([]any); return nil })
+		return nil
+	}, pulumi.WithMocks("attestra-application", "dev", m)); err != nil {
 		t.Fatal(err)
+	}
+	nativeCount := 0
+	for _, r := range m.resources {
+		if strings.HasPrefix(r.TypeToken, "aws:") {
+			nativeCount++
+		}
+	}
+	if len(inventory) != nativeCount {
+		t.Fatalf("main inventory coverage %d of %d native resources", len(inventory), nativeCount)
+	}
+	serialized, _ := json.Marshal(inventory)
+	if strings.Contains(string(serialized), cfg["attestra-application:proofKey"]) {
+		t.Fatal("inventory leaks proof key")
+	}
+	for _, r := range m.resources {
+		if r.Name == "email-signup" {
+			tags := r.Inputs["tags"]
+			if !tags.IsObject() || tags.ObjectValue()["ic:application"].StringValue() != "attestra" || tags.ObjectValue()["ic:feature"].StringValue() != "authentication" {
+				t.Fatal("main app is missing ownership on its integrated email Lambda")
+			}
+		}
 	}
 	count := 0
 	for _, r := range m.resources {
