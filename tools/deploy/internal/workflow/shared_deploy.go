@@ -209,8 +209,8 @@ func deploySharedStack(r commandRunner, o options, build func(string) error) err
 	if err != nil {
 		return err
 	}
-	var out map[string]string
-	if json.Unmarshal(data, &out) != nil || out["adminPoolId"] == "" || out["adminLoginDomain"] == "" || out["runtimeTableName"] == "" || out["apiUrl"] == "" {
+	var out sharedStackOutputs
+	if json.Unmarshal(data, &out) != nil || out.AdminPoolID == "" || out.AdminLoginDomain == "" || out.RuntimeTableName == "" || out.APIURL == "" {
 		return errors.New("shared deployment incomplete; resume setup first")
 	}
 	if err = build(o.Root); err != nil {
@@ -226,11 +226,11 @@ func deploySharedStack(r commandRunner, o options, build func(string) error) err
 	if err != nil {
 		return err
 	}
-	out = nil
-	if json.Unmarshal(data, &out) != nil || out["adminPoolId"] == "" || out["adminLoginDomain"] == "" {
+	out = sharedStackOutputs{}
+	if json.Unmarshal(data, &out) != nil || out.AdminPoolID == "" || out.AdminLoginDomain == "" {
 		return errors.New("shared deployment completed but admin outputs are incomplete")
 	}
-	if _, err = r.Exec(o.Root, false, "go", "run", "./cmd/admin-setup", "-auth-only", "-pool", out["adminPoolId"], "-login", out["adminLoginDomain"]); err != nil {
+	if _, err = r.Exec(o.Root, false, "go", "run", "./cmd/admin-setup", "-auth-only", "-pool", out.AdminPoolID, "-login", out.AdminLoginDomain); err != nil {
 		return fmt.Errorf("shared infrastructure updated; admin authentication reconciliation incomplete, rerun shared deployment: %w", err)
 	}
 	fmt.Println("Shared index and admin deployment finished. Environment backends were not deployed.")

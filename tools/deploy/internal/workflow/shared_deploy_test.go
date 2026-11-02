@@ -53,7 +53,7 @@ func (r *sharedRunner) Exec(dir string, capture bool, name string, args ...strin
 	return nil, nil
 }
 func sharedTestRunner() *sharedRunner {
-	return &sharedRunner{config: `{"aws:region":{"value":"us-east-2"},"attestra-control-plane:domain":{"value":"index.example.com"},"attestra-control-plane:adminDomain":{"value":"admin.example.com"}}`, outputs: `{"adminPoolId":"pool","adminLoginDomain":"https://login.example.com","runtimeTableName":"runtime","apiUrl":"https://api.example.com"}`}
+	return &sharedRunner{config: `{"aws:region":{"value":"us-east-2"},"attestra-control-plane:domain":{"value":"index.example.com"},"attestra-control-plane:adminDomain":{"value":"admin.example.com"}}`, outputs: `{"resourceInventory":[{"type":"aws:lambda/permission:Permission","labels":{"ic:environment":"shared"}}],"adminPoolId":"pool","adminLoginDomain":"https://login.example.com","runtimeTableName":"runtime","apiUrl":"https://api.example.com"}`}
 }
 func TestSharedDeploymentIsolationAndFailureStops(t *testing.T) {
 	r := sharedTestRunner()
@@ -178,6 +178,16 @@ func TestSharedBuildFailureStopsBeforePreview(t *testing.T) {
 	for _, c := range r.calls {
 		if strings.Contains(c, "preview") || strings.Contains(c, " up ") {
 			t.Fatal("deployed after failed build")
+		}
+	}
+}
+
+func TestSharedDeploymentRejectsMissingOrInvalidRequiredOutputs(t *testing.T) {
+	for _, outputs := range []string{`{}`, `{"adminPoolId":[],"adminLoginDomain":"https://login.example.com","runtimeTableName":"runtime","apiUrl":"https://api.example.com","resourceInventory":[]}`} {
+		r := sharedTestRunner()
+		r.outputs = outputs
+		if err := deploySharedStack(r, options{Root: t.TempDir(), Stack: "shared", Region: "us-east-2"}, func(string) error { t.Fatal("built with invalid required outputs"); return nil }); err == nil {
+			t.Fatal("accepted invalid outputs")
 		}
 	}
 }

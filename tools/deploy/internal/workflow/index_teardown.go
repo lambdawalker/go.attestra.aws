@@ -217,11 +217,11 @@ func runIndexTeardown(root string) error {
 			if e != nil {
 				return e
 			}
-			var out map[string]string
+			var out sharedStackOutputs
 			if json.Unmarshal(output, &out) != nil {
 				return errors.New("invalid index outputs")
 			}
-			if target := out["domainTarget"]; target != "" {
+			if target := out.DomainTarget; target != "" {
 				p.Desired = append(p.Desired, dns.Record{Type: "CNAME", Name: p.Domain, Content: target})
 			}
 			if p.Values["route53ZoneId"] != "" {
