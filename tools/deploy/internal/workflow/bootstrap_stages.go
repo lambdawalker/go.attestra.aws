@@ -60,7 +60,12 @@ func waitSES(ctx context.Context, interval time.Duration, read func() (sesEviden
 	}
 }
 
-func (w *bootstrapWizard) deployStages() error {
+func (w *bootstrapWizard) deployStages() (resultErr error) {
+	if w.r != nil && !w.r.reportDisabled && w.r.reportActive == nil {
+		a := beginArtifactAttempt(w.r, w.r, w.root, filepath.Join(w.root, "infra"), w.o.Stack, "deploy")
+		w.r.reportActive = a
+		defer func() { a.finish(resultErr); w.r.reportActive = nil }()
+	}
 	before, _ := readLocalRevision(w.root)
 	configuration := w.configurationDigest()
 	if err := w.r.withIndex(w.o, w.deployStagesActual); err != nil {

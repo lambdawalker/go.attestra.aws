@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
 	"net/mail"
 	"net/url"
 	"os"
@@ -178,8 +179,15 @@ func (w *bootstrapWizard) prepare(a *awsenv.Client, c credentials, o options, ac
 	if err != nil {
 		return err
 	}
-	w.r = &processRunner{env: env, onPreview: w.recordPreview}
+	w.r = &processRunner{env: env, onPreview: w.recordPreview, reportAccount: account}
+	if w.secrets.GitHub != "" {
+		w.r.reportGitHub = github.NewClient(w.secrets.GitHub)
+	}
+	if w.secrets.Cloudflare != "" {
+		w.r.reportDNS = dns.NewClient(w.secrets.Cloudflare)
+	}
 	w.a = &awsenv.Client{Env: env, RenewalFailure: credentialRenewalFailure}
+	w.r.reportActive = beginArtifactAttempt(w.r, w.r, w.root, filepath.Join(w.root, "infra"), o.Stack, "deploy")
 	// Prefer actual stack configuration; memory covers interruption before config writes.
 	current := map[string]struct{ Value string }{}
 	configPath := filepath.Join(w.root, "infra", "Pulumi."+o.Stack+".yaml")

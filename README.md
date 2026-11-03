@@ -72,3 +72,66 @@ Main deploys ownership tags, safe descriptions and resource inventory for the en
 ## Card capture feature
 
 Card capture is composed independently from [go.appexfission.aws.card-capture](https://github.com/lambdawalker/go.appexfission.aws.card-capture), including its three Lambda archives and native resources. See [contracts, reset composition and rollout](docs/card-capture-composition.md).
+
+### Artifact reports and read-only preview
+
+Every deployment attempt (backend, shared index/admin, full setup, and CI) writes
+`deployment-reports/<UTC timestamp>-<project>/artifacts.md`, `artifacts.json`, and
+`artifacts.html`. A partial bundle is written before deployment; completed native
+updates receive fresh per-resource read-only checks even when `pulumi up` fails.
+The final bundle also includes GitHub environments, Cloudflare DNS, the state
+bucket, and the setup deployment role. Runtime user uploads are excluded. Reports
+and scoped machine snapshots are private local files and ignored by Git. CI keeps
+only the safe report bundles as an artifact, including on failure.
+
+On Windows, from the repository root:
+
+```powershell
+.\deploy.bat -report -stack dev
+.\deploy.bat -report -scope both -stack dev
+.\deploy.bat -report -stack dev -account 123456789012 -backend s3://my-state-bucket
+.\deploy.bat -report -stack dev -feature authentication
+.\deploy.bat -report -refresh -stack dev
+.\deploy.bat -preview -stack dev
+.\deploy.bat -preview -scope shared
+```
+
+Use `./deploy.sh` with the same flags on macOS/Linux. `-env dev` is an alias for
+`-stack dev` in reporting modes. `-scope` accepts `app`, `shared`, or `both`.
+`-account`, `-backend`, and `-region` narrow cached scope selection. Multiple
+matching accounts, backends, repositories, or stacks are refused rather than
+selected arbitrarily. `both` requires one cached snapshot for each project.
+
+`-report` runs before the startup menu and needs no AWS/Pulumi credentials,
+provider tools, or network. It renders the stored snapshot and preserves the
+original observation times and sources; `cacheLoaded` identifies loaded evidence.
+`-feature` selects an exact canonical feature and retains its parent hierarchy.
+
+`-report -refresh` and `-preview` use the configured AWS credential chain (exported
+AWS credentials or `AWS_PROFILE`) and `PULUMI_CONFIG_PASSPHRASE`. They do not unlock
+the local vault or request extra tokens. First authenticate with your normal AWS
+login/SSO flow and set the stack passphrase in the current terminal. The AWS STS
+account must match the selected snapshot; the project, backend and stack are
+explicit. For a first preview without a cache, supply `-backend`, `-region`, and
+optionally `-account`. Keep passphrases out of command arguments and scripts.
+
+`-preview` runs native Pulumi preview and captures its planned operations without
+`up`, registry publication, bootstrap locks, or authentication reconciliation.
+Existing `-ci preview` also writes reports. Preview does not replace a live cache
+with an offline plan. Reporting operation flags cannot be combined with setup,
+teardown, migration, publication, health checks, or deployment operation flags.
+
+A state record means **recorded**, not live present. A successful exact provider
+check means **present** or **absent**; permission errors, missing credentials,
+unsupported checks, and incomplete child checks mean **unknown**. Parent presence
+does not prove child presence. DNS with a different target stays present and adds
+a configuration mismatch warning. A successful infrastructure update followed by
+a failed health/reconciliation step has a separate outcome. Cached snapshots live
+under `.cache/infra-composer/`, scoped by application, repository, environment,
+AWS account, region, backend, Pulumi project and stack.
+
+Normal interactive deployments reuse already unlocked vault GitHub/Cloudflare
+tokens. CI and read-only refresh can use `GH_TOKEN` (or `GITHUB_TOKEN`) and
+`CLOUDFLARE_API_TOKEN`. Missing supplemental tokens produce unknown observations;
+no extra token prompts are introduced. Raw state exports, engine events,
+provider diagnostics, credentials and runtime S3 contents are never published.

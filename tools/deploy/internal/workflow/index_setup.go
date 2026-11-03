@@ -99,7 +99,7 @@ func replaceEnvironment(env []string, values map[string]string) []string {
 
 // A separate state bucket and conditional S3 lock serialize shared infrastructure
 // setup across machines. A crashed bootstrap is recovered explicitly, never stolen.
-func (w *bootstrapWizard) prepareIndex(base, zone string) error {
+func (w *bootstrapWizard) prepareIndex(base, zone string) (resultErr error) {
 	fmt.Println("Shared environment index • independent Pulumi project")
 	o := w.o
 	o.Stack = "shared"
@@ -150,8 +150,11 @@ func (w *bootstrapWizard) prepareIndex(base, zone string) error {
 			return e
 		}
 	}
-	r := &processRunner{onPreview: w.recordPreview, env: replaceEnvironment(w.r.env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL(), "PULUMI_CONFIG_PASSPHRASE": w.secrets.IndexPulumi})}
+	r := &processRunner{reportAccount: w.account, reportGitHub: w.r.reportGitHub, reportDNS: w.r.reportDNS, onPreview: w.recordPreview, env: replaceEnvironment(w.r.env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL(), "PULUMI_CONFIG_PASSPHRASE": w.secrets.IndexPulumi})}
 	dir := filepath.Join(w.root, "infra-index")
+	aReport := beginArtifactAttempt(r, r, w.root, dir, "shared", "deploy")
+	r.reportActive = aReport
+	defer func() { aReport.finish(resultErr); r.reportActive = nil }()
 	run := func(capture bool, args ...string) ([]byte, error) { return r.Exec(dir, capture, "pulumi", args...) }
 	list, e := run(true, "stack", "ls", "--json", "--non-interactive")
 	if e != nil {

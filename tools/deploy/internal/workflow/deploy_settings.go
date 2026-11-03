@@ -206,5 +206,7 @@ func deployCredentials(w *bootstrapWizard, o options) (credentials, error) {
 			return c, err
 		}
 	}
+	c.GitHubToken = w.secrets.GitHub
+	c.DNSToken = w.secrets.Cloudflare
 	return c, nil
 }

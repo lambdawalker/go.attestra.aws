@@ -7,6 +7,8 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/term"
 	awsenv "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/aws"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/dns"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
 	"os"
 	"path/filepath"
@@ -100,12 +102,14 @@ func runSharedDeploy(o options) error {
 			return err
 		}
 	}
+	c.GitHubToken = saved.secrets.GitHub
+	c.DNSToken = saved.secrets.Cloudflare
 	return deploySharedWithCredentials(o, c, "")
 }
 
 // Both-scope deployments reuse the authenticated backend identity, but never its
 // state passphrase. Each project keeps its own temporary Pulumi environment.
-func deploySharedWithCredentials(o options, c credentials, expectedAccount string) error {
+func deploySharedWithCredentials(o options, c credentials, expectedAccount string) (resultErr error) {
 	o.Stack = "shared"
 	tmp, err := os.MkdirTemp("", "attestra-shared-deploy-")
 	if err != nil {
@@ -136,7 +140,16 @@ func deploySharedWithCredentials(o options, c credentials, expectedAccount strin
 	if err = o.validate(); err != nil {
 		return err
 	}
-	r := &processRunner{env: replaceEnvironment(env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL()})}
+	r := &processRunner{reportAccount: identity.Account, env: replaceEnvironment(env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL()})}
+	if c.GitHubToken != "" {
+		r.reportGitHub = github.NewClient(c.GitHubToken)
+	}
+	if c.DNSToken != "" {
+		r.reportDNS = dns.NewClient(c.DNSToken)
+	}
+	aReport := beginArtifactAttempt(r, r, o.Root, filepath.Join(o.Root, "infra-index"), "shared", "deploy")
+	r.reportActive = aReport
+	defer func() { aReport.finish(resultErr); r.reportActive = nil }()
 	if err = checkBucket(r, o, identity.Account); err != nil {
 		return err
 	}
@@ -167,7 +180,12 @@ func withSharedDeployLock(a awsenv.API, o options, account, tmp string, work fun
 	return work()
 }
 
-func deploySharedStack(r commandRunner, o options, build func(string) error) error {
+func deploySharedStack(r commandRunner, o options, build func(string) error) (resultErr error) {
+	if p, ok := r.(*processRunner); ok && !p.reportDisabled && p.reportActive == nil {
+		a := beginArtifactAttempt(p, r, o.Root, filepath.Join(o.Root, "infra-index"), "shared", "deploy")
+		p.reportActive = a
+		defer func() { a.finish(resultErr); p.reportActive = nil }()
+	}
 	dir := filepath.Join(o.Root, "infra-index")
 	run := func(capture bool, args ...string) ([]byte, error) { return r.Exec(dir, capture, "pulumi", args...) }
 	if _, err := run(true, "stack", "select", "shared", "--non-interactive"); err != nil {

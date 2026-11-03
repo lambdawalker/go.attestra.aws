@@ -23,7 +23,7 @@ func validateCI(o options, c credentials) error {
 	}
 	return o.validate()
 }
-func runCI(o options) error {
+func runCI(o options) (resultErr error) {
 	c := credentials{Access: os.Getenv("AWS_ACCESS_KEY_ID"), Secret: os.Getenv("AWS_SECRET_ACCESS_KEY"), Token: os.Getenv("AWS_SESSION_TOKEN"), Passphrase: os.Getenv("PULUMI_CONFIG_PASSPHRASE")}
 	if err := validateCI(o, c); err != nil {
 		return err
@@ -58,6 +58,17 @@ func runCI(o options) error {
 	if json.Unmarshal(data, &identity) != nil || identity.Account == "" {
 		return errors.New("invalid AWS identity response")
 	}
+	r.reportAccount = identity.Account
+	if o.CI != "publish" {
+		op := "deploy"
+		if o.CI == "preview" {
+			op = "preview"
+		}
+		a := beginArtifactAttempt(r, r, o.Root, filepath.Join(o.Root, "infra"), o.Stack, op)
+		r.reportActive = a
+		defer func() { a.finish(resultErr); r.reportActive = nil }()
+	}
+
 	fmt.Printf("CI %s • account %s • stack %s • backend %s\n", o.CI, identity.Account, o.Stack, o.Backend)
 	if err := checkBucket(r, o, identity.Account); err != nil {
 		return err
