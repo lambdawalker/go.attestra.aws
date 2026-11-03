@@ -68,3 +68,7 @@ The application composes [isolated email verification](https://github.com/lambda
 
 Main deploys ownership tags, safe descriptions and resource inventory for the environment backend and shared admin/index. See [ownership and rollout](docs/resource-ownership.md).
 
+
+## Card capture feature
+
+Card capture is composed independently from [go.appexfission.aws.card-capture](https://github.com/lambdawalker/go.appexfission.aws.card-capture), including its three Lambda archives and native resources. See [contracts, reset composition and rollout](docs/card-capture-composition.md).
