@@ -135,3 +135,14 @@ tokens. CI and read-only refresh can use `GH_TOKEN` (or `GITHUB_TOKEN`) and
 `CLOUDFLARE_API_TOKEN`. Missing supplemental tokens produce unknown observations;
 no extra token prompts are introduced. Raw state exports, engine events,
 provider diagnostics, credentials and runtime S3 contents are never published.
+
+### Upgrading existing email verification routes
+
+The pinned email feature includes aliases from the original `route-signup`,
+`route-resend`, and `route-confirm` Pulumi resources. This fixes API Gateway 409
+conflicts when upgrading a pre-extraction stack. After updating the checkout,
+run `deploy.bat -preview -stack dev` with the documented preview credentials and
+verify those routes are adopted rather than created before deploying. Avoid
+timed approvals for this migration review. Do not delete the existing routes or
+remove their state entries to work around a conflict. If they are absent from
+state, inspect the stack and API identities before choosing an import/recovery.
