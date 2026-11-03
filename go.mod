@@ -46,5 +46,5 @@ require (
 	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711
 	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4
 	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002
-	github.com/lambdawalker/go.infra.composer v0.0.0-20261103142306-5d896c43edf3
+	github.com/lambdawalker/go.infra.composer v0.0.0-20261103191159-60f558f75e08
 )

@@ -81,7 +81,7 @@ Every deployment attempt (backend, shared index/admin, full setup, and CI) write
 updates receive fresh per-resource read-only checks even when `pulumi up` fails.
 The final bundle also includes GitHub environments, Cloudflare DNS, the state
 bucket, and the setup deployment role. Runtime user uploads are excluded. Reports
-and scoped machine snapshots are private local files and ignored by Git. CI keeps
+and scoped machine snapshots are private local files and ignored by Git. The HTML view includes a left deployment/feature sidebar, compact collapsible artifact cards, colored statuses, type icons and sorting controls. Subartifacts stay nested when sorting. CI keeps
 only the safe report bundles as an artifact, including on failure.
 
 On Windows, from the repository root:

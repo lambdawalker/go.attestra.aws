@@ -46,14 +46,12 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711 h1:BuUqbm2Inap5GQ2vaV+AkI1lYtN5zu9agmMXMa9p4cQ=
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711/go.mod h1:1CPfGxfSndSb+FWlfd0uEJIcAXeZ3EvUQnls5inm6XI=
-github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413 h1:M3oyS9HL2DaZU2JS3YY9KDKxGT7J9Lv7coBJuZd8W7w=
-github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4 h1:iOP1m3Apn0rtaX+r/SXuSB6t3VV5emHajMVfVQlclg4=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002 h1:5S5N0/kYEjBfqdmEiYJL92jXE/fQ7f7/+rErA7f2gmQ=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002/go.mod h1:e8XZ85OOMhn6H5XS94WQkuPkGR/NS7h4RkWRPMx4tR8=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261103142306-5d896c43edf3 h1:e+8Xz6k+rSfbjQNUG7VEjOLq8+RHEHXnEBULcYKuQFw=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261103142306-5d896c43edf3/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261103191159-60f558f75e08 h1:zutKJOjg9khYyWF+QTUpIiUbnARnH4U3LWwNruY72zk=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261103191159-60f558f75e08/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.7.2 h1:4jaiDzPyXQvSd7D0EjG45355tLlV3VOECpq10pLC+8s=
