@@ -38,11 +38,18 @@ func validateSetupValues(v map[string]string) error {
 	}
 	return (options{Backend: v["PULUMI_BACKEND_URL"], Stack: v["PULUMI_STACK"], Region: v["AWS_REGION"]}).validate()
 }
-func runGitHubSetup(root string, full, force, freshCredentials bool) error {
+func runGitHubSetup(root string, full, force, freshCredentials bool) (resultErr error) {
 	var bootstrap *bootstrapWizard
 	if full {
 		bootstrap = &bootstrapWizard{root: root}
 		defer bootstrap.cleanup()
+		defer func() {
+			if bootstrap.r != nil && bootstrap.r.reportActive != nil {
+				a := bootstrap.r.reportActive
+				a.finish(resultErr)
+				bootstrap.r.reportActive = nil
+			}
+		}()
 	}
 	if !term.IsTerminal(os.Stdin.Fd()) {
 		return errors.New("run GitHub setup in an interactive terminal")

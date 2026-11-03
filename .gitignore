@@ -10,3 +10,7 @@ go.work.sum
 __pycache__/
 /tools/deploy/deploy-check
 /tools/deploy/deploy-check.exe
+
+# Safe artifact evidence snapshots and generated deployment reports
+.cache/infra-composer/
+deployment-reports/

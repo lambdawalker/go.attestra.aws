@@ -17,14 +17,23 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/term"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/dns"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
 )
 
-func Run() error {
+func Run() (resultErr error) {
 	if len(os.Args) == 3 && os.Args[1] == "-credential-process" {
 		return runCredentialProcess(os.Args[2])
 	}
 	var associations, timedConfirm bool
 	var scope string
+	var reportFlags artifactReportFlags
+	flag.BoolVar(&reportFlags.Report, "report", false, "Render cached artifact reports without credentials or network")
+	flag.BoolVar(&reportFlags.Refresh, "refresh", false, "With -report: run fresh read-only provider checks")
+	flag.BoolVar(&reportFlags.Preview, "preview", false, "Native read-only Pulumi preview and artifact report")
+	flag.StringVar(&reportFlags.Environment, "env", "", "Environment alias for -stack in reporting modes")
+	flag.StringVar(&reportFlags.Account, "account", "", "Filter artifact cache by AWS account")
+	flag.StringVar(&reportFlags.Feature, "feature", "", "Filter artifact report by canonical feature")
 	flag.StringVar(&scope, "scope", "app", "Deployment scope: app (backend), shared (index/admin), or both")
 	var o options
 	var setupGitHub, bootstrap, build, teardown, forceSetup, freshCredentials, manageVault, teardownIndex, nuke, check, fastCheck bool
@@ -60,6 +69,30 @@ func Run() error {
 	}
 	var supplied []string
 	flag.Visit(func(f *flag.Flag) { supplied = append(supplied, f.Name) })
+	reportFlags.Scope = scope
+	if err := validateArtifactFlags(reportFlags, supplied); err != nil {
+		return err
+	}
+	if reportFlags.Report || reportFlags.Preview {
+		if flag.NArg() != 0 {
+			return errors.New("unexpected positional arguments")
+		}
+		if reportFlags.Environment != "" {
+			if containsReportFlag(supplied, "stack") && o.Stack != reportFlags.Environment {
+				return errors.New("-env conflicts with -stack")
+			}
+			o.Stack = reportFlags.Environment
+		}
+		root, e := filepath.Abs(o.Root)
+		if e != nil {
+			return e
+		}
+		o.Root = root
+		if !containsReportFlag(supplied, "region") {
+			o.Region = ""
+		}
+		return runArtifactReports(o, reportFlags, os.Stdout)
+	}
 	if err := validateTimedConfirmationMode(timedConfirm, supplied); err != nil {
 		return err
 	}
@@ -240,7 +273,13 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	runner := &processRunner{env: env}
+	runner := &processRunner{env: env, reportGitHub: github.NewClient(saved.secrets.GitHub)}
+	if saved.secrets.Cloudflare != "" {
+		runner.reportDNS = dns.NewClient(saved.secrets.Cloudflare)
+	}
+	if saved.secrets.GitHub == "" {
+		runner.reportGitHub = nil
+	}
 	identity, err := runner.Exec(o.Root, true, "aws", "sts", "get-caller-identity", "--output", "json", "--no-cli-pager")
 	if err != nil {
 		return errors.New("AWS credentials could not be verified; check their expiry and use scripts/credentials.bat or scripts/credentials.sh to replace saved manual credentials, or retry with -Sso/-Login")
@@ -252,6 +291,13 @@ func Run() error {
 	if err := json.Unmarshal(identity, &id); err != nil || id.Account == "" {
 		return errors.New("invalid AWS identity response")
 	}
+	runner.reportAccount = id.Account
+	if !associations && o.ExportAndroid == "" && !o.HealthCheck && o.MigrateFrom == "" && !o.PublishOnly && !o.ReleaseIndex {
+		a := beginArtifactAttempt(runner, runner, o.Root, filepath.Join(o.Root, "infra"), o.Stack, "deploy")
+		runner.reportActive = a
+		defer func() { a.finish(resultErr); runner.reportActive = nil }()
+	}
+
 	fmt.Printf("Account: %s\nIdentity: %s\nRegion: %s\nState: %s\nStack: %s\n", id.Account, id.Arn, o.Region, o.Backend, o.Stack)
 	if err := ui.Continue("Use this AWS identity and state location?"); err != nil {
 		return err
@@ -311,7 +357,7 @@ func Run() error {
 // Retain the old Windows launcher spellings while all launchers now invoke Go.
 func normalizeArguments(args []string) []string {
 	result := append([]string(nil), args...)
-	names := map[string]string{"scope": "scope", "stack": "stack", "backend": "backend", "region": "region", "migratefrom": "migrate-from", "pull": "pull", "login": "login", "sso": "sso", "profile": "profile"}
+	names := map[string]string{"report": "report", "refresh": "refresh", "preview": "preview", "env": "env", "account": "account", "feature": "feature", "scope": "scope", "stack": "stack", "backend": "backend", "region": "region", "migratefrom": "migrate-from", "pull": "pull", "login": "login", "sso": "sso", "profile": "profile"}
 	for i, arg := range result {
 		if strings.HasPrefix(arg, "-") {
 			parts := strings.SplitN(strings.TrimLeft(arg, "-"), "=", 2)

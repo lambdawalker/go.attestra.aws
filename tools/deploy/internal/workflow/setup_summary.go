@@ -197,7 +197,12 @@ func previewEventLog() (string, func(), error) {
 	if err != nil {
 		return "", func() {}, err
 	}
-	return filepath.Join(dir, "events.json"), func() { os.RemoveAll(dir) }, nil
+	path := filepath.Join(dir, "events.json")
+	if err := os.WriteFile(path, nil, 0600); err != nil {
+		os.RemoveAll(dir)
+		return "", func() {}, err
+	}
+	return path, func() { os.RemoveAll(dir) }, nil
 }
 
 func (w *bootstrapWizard) recordSummaryHealth(passed bool) error {

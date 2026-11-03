@@ -15,6 +15,8 @@ import (
 
 	awsenv "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/aws"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/build"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/dns"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
 )
 
 type options struct {
@@ -27,6 +29,7 @@ type options struct {
 	Pull, Login, Sso                                       bool
 }
 type credentials struct {
+	GitHubToken, DNSToken                         string
 	Access, Secret, Token, Passphrase, CloudToken string
 	Source                                        *credentialSource
 }
@@ -34,12 +37,21 @@ type commandRunner interface {
 	Exec(dir string, capture bool, name string, args ...string) ([]byte, error)
 }
 type processRunner struct {
-	env        []string
-	indexLease *pendingIndex
-	onPreview  func(string, map[string]int, bool)
+	reportRunner   commandRunner
+	reportDisabled bool
+	reportAccount  string
+	reportGitHub   *github.Client
+	reportDNS      *dns.Client
+	reportActive   *artifactAttempt
+	lastReport     *artifactAttempt
+	env            []string
+	indexLease     *pendingIndex
+	onPreview      func(string, map[string]int, bool)
 }
 
-func (p *processRunner) Exec(dir string, capture bool, name string, args ...string) ([]byte, error) {
+func (p *processRunner) Exec(dir string, capture bool, name string, args ...string) (result []byte, resultErr error) {
+	finishReport := p.artifactCommand(dir, name, args)
+	defer func() { finishReport(resultErr) }()
 	args, err := timedPulumiArgs(name, args, ui.TimedConfirmationsEnabled(), ui.Continue)
 	if err != nil {
 		return nil, err
@@ -68,14 +80,20 @@ func (p *processRunner) Exec(dir string, capture bool, name string, args ...stri
 		cmd.Env = captureEnvironment(cmd.Env, effective)
 	}
 	var eventLog string
-	if name == "pulumi" && len(args) > 0 && args[0] == "preview" && p.onPreview != nil {
-		path, cleanup, err := previewEventLog()
-		if err != nil {
-			return nil, err
+	if name == "pulumi" && len(args) > 0 && args[0] == "refresh" {
+		cmd.Env = replaceEnvironment(cmd.Env, map[string]string{"PULUMI_DEBUG_COMMANDS": "true"})
+	}
+	if name == "pulumi" && len(args) > 0 && args[0] == "preview" && (p.onPreview != nil || p.reportActive != nil) {
+		eventLog = pulumiEventLogArg(args)
+		if eventLog == "" {
+			path, cleanup, e := previewEventLog()
+			if e != nil {
+				return nil, e
+			}
+			defer cleanup()
+			eventLog = path
+			cmd.Args = append(cmd.Args, "--event-log", path)
 		}
-		defer cleanup()
-		eventLog = path
-		cmd.Args = append(cmd.Args, "--event-log", path)
 		cmd.Env = replaceEnvironment(cmd.Env, map[string]string{"PULUMI_DEBUG_COMMANDS": "true"})
 	}
 	cmd.Stdin = os.Stdin
@@ -95,7 +113,12 @@ func (p *processRunner) Exec(dir string, capture bool, name string, args ...stri
 			changes, _ = readPreviewChanges(f)
 			f.Close()
 		}
-		p.onPreview(previewScope(dir, args), changes, runErr == nil)
+		if p.onPreview != nil {
+			p.onPreview(previewScope(dir, args), changes, runErr == nil)
+		}
+		if p.reportActive != nil {
+			p.reportActive.previewFile(eventLog)
+		}
 	}
 	if err := runErr; err != nil {
 		if renewal := credentialRenewalFailure(cmd.Env, stderr.String()); renewal != nil {
@@ -200,7 +223,16 @@ func pullRepository(r commandRunner, root string) error {
 	_, err = r.Exec(root, false, "git", "pull", "--ff-only")
 	return err
 }
-func execute(r commandRunner, o options) error {
+func execute(r commandRunner, o options) (resultErr error) {
+	if p, ok := r.(*processRunner); ok && !p.reportDisabled && p.reportActive == nil && !o.PublishOnly && !o.ReleaseIndex && o.MigrateFrom == "" {
+		operation := "deploy"
+		if o.CI == "preview" {
+			operation = "preview"
+		}
+		a := beginArtifactAttempt(p, r, o.Root, filepath.Join(o.Root, "infra"), o.Stack, operation)
+		p.reportActive = a
+		defer func() { a.finish(resultErr); p.reportActive = nil }()
+	}
 	if p, ok := r.(*processRunner); ok && !o.SkipIndex && len(o.Targets) == 0 && o.MigrateFrom == "" && o.CI != "preview" {
 		if o.PublishOnly || o.ReleaseIndex {
 			return p.withIndex(o, nil)

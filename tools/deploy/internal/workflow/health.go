@@ -163,7 +163,19 @@ func checkEnvironmentHealth(r commandRunner, o options, client *http.Client) hea
 	report = append(report, healthResult{"Coverage", "INFO", "No users, emails, or ID uploads were created. SES sandbox restrictions and full sign-in/upload flows still require separate testing."})
 	return report
 }
-func runEnvironmentHealth(r commandRunner, o options) error {
+func runEnvironmentHealth(r commandRunner, o options) (resultErr error) {
+	defer func() {
+		if p, ok := r.(*processRunner); ok && p.lastReport != nil && p.reportActive == nil {
+			a := p.lastReport
+			if a.report.Metadata.Outcome == "succeeded" {
+				a.report.Metadata.FinishedAt = time.Now().UTC()
+				if resultErr != nil {
+					a.report.Metadata.Outcome = "infrastructure_succeeded_health_failed"
+				}
+				a.persist()
+			}
+		}
+	}()
 	fmt.Printf("\nFinal environment health check • %s • %s\n", o.Stack, o.Region)
 	report := checkEnvironmentHealth(r, o, &http.Client{})
 	for _, item := range report {

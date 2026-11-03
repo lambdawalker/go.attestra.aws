@@ -145,3 +145,12 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 90
+
+      - name: Retain safe deployment reports
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: deployment-reports-${{ inputs.environment }}
+          path: deployment-reports/
+          if-no-files-found: ignore
+          retention-days: 90

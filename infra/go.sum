@@ -162,10 +162,10 @@ github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-9
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002/go.mod h1:e8XZ85OOMhn6H5XS94WQkuPkGR/NS7h4RkWRPMx4tR8=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261103032703-915eb97b7002 h1:QaKoBVscqoDi317HZMF0Sa7YvS4kETaHuRfQW/o4E0Y=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261103032703-915eb97b7002/go.mod h1:U/vZTCL46rP2mZ5i3qOLk2JGT7kCrN8JdeQnqD60yQk=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261102194707-9c7f065ec12b h1:lPyIe19jwfknNyakcTEkjZ66F8OZpHurcqqnpEWA8Io=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261102194707-9c7f065ec12b/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
-github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261102194734-25e4fbebbec0 h1:H01kbXuVjTYCLStpKEU2KceV2RvUlGCbPDqcQFP1muU=
-github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261102194734-25e4fbebbec0/go.mod h1:gieIB1KpnJhzEloqnwtq64BDYkFWA6ptTYPApc1AEi8=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261103142306-5d896c43edf3 h1:e+8Xz6k+rSfbjQNUG7VEjOLq8+RHEHXnEBULcYKuQFw=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261103142306-5d896c43edf3/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
+github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261103142306-5d896c43edf3 h1:wUyJpt9yCwOXjvjurSYH0FHkQsBC96RiO5jqtqrlyzQ=
+github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261103142306-5d896c43edf3/go.mod h1:HsA23fn2vbyEtDf503+YC2pGjE7S6x/6BHpxbS//XlU=
 github.com/lucasb-eyer/go-colorful v1.3.0 h1:2/yBRLdWBZKrf7gB40FoiKfAWYQ0lqNcbuQwVHXptag=
 github.com/lucasb-eyer/go-colorful v1.3.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
