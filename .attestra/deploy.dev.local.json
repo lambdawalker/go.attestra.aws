@@ -1,0 +1,8 @@
+{
+  "Repository": "lambdawalker/go.attestra.aws",
+  "Stack": "dev",
+  "Backend": "s3://attestra-state-d467209e9ada5e0c",
+  "Region": "us-east-2",
+  "AuthMode": "sso",
+  "Profile": "attestra"
+}

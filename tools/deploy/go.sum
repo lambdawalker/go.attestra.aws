@@ -66,8 +66,8 @@ github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f h1:Y/CXytFA4m6
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f/go.mod h1:vw97MGsxSvLiUE2X8qFplwetxpGLQrlU1Q9AUEIzCaM=
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711 h1:BuUqbm2Inap5GQ2vaV+AkI1lYtN5zu9agmMXMa9p4cQ=
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711/go.mod h1:1CPfGxfSndSb+FWlfd0uEJIcAXeZ3EvUQnls5inm6XI=
-github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413 h1:M3oyS9HL2DaZU2JS3YY9KDKxGT7J9Lv7coBJuZd8W7w=
-github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
+github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4 h1:iOP1m3Apn0rtaX+r/SXuSB6t3VV5emHajMVfVQlclg4=
+github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002 h1:5S5N0/kYEjBfqdmEiYJL92jXE/fQ7f7/+rErA7f2gmQ=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002/go.mod h1:e8XZ85OOMhn6H5XS94WQkuPkGR/NS7h4RkWRPMx4tR8=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103142306-5d896c43edf3 h1:e+8Xz6k+rSfbjQNUG7VEjOLq8+RHEHXnEBULcYKuQFw=
