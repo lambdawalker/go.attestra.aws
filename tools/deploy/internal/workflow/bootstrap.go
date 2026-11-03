@@ -28,6 +28,7 @@ import (
 
 type bootstrapWizard struct {
 	indexAPIArn                                       string
+	snapshotTableARN                                  string
 	vault                                             *credentialvault.Vault
 	secrets                                           credentialvault.Credentials
 	credentialRepo                                    string

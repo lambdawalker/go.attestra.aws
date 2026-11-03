@@ -53,7 +53,7 @@ func TestIndexPendingReceiptRoundTrip(t *testing.T) {
 }
 func TestRegistrySourceHashIgnoresGeneratedConfig(t *testing.T) {
 	root := stateTestDir(t)
-	for _, dir := range []string{"registry", "internal/awshttp", "adminapi", "cmd/admin", "adminsetup", "cmd/admin-setup", "cmd/index", "infra-index"} {
+	for _, dir := range []string{"registry", "internal/awshttp", "adminapi", "artifactsnapshot", "cmd/admin", "adminsetup", "cmd/admin-setup", "cmd/index", "infra-index"} {
 		os.MkdirAll(filepath.Join(root, dir), 0755)
 	}
 	for _, name := range []string{"go.mod", "go.sum", "registry/service.go", "internal/awshttp/client.go", "infra-index/Pulumi.yaml"} {

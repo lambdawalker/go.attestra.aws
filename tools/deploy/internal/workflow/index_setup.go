@@ -27,7 +27,7 @@ import (
 
 func indexSourceHash(root string) (string, error) {
 	files := []string{"go.mod", "go.sum"}
-	for _, dir := range []string{"registry", "internal", "adminapi", "cmd/admin", "adminsetup", "cmd/admin-setup", "cmd/index", "infra-index"} {
+	for _, dir := range []string{"registry", "internal", "adminapi", "artifactsnapshot", "cmd/admin", "adminsetup", "cmd/admin-setup", "cmd/index", "infra-index"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, d os.DirEntry, e error) error {
 			if e != nil {
 				return e
@@ -325,6 +325,10 @@ func (w *bootstrapWizard) prepareIndex(base, zone string) (resultErr error) {
 	if json.Unmarshal(outputs, &out) != nil || out.APIURL == "" || out.DomainTarget == "" || out.APIARN == "" || out.RuntimeTableName == "" || out.RuntimeTableARN == "" || out.AdminPoolID == "" || out.AdminLoginDomain == "" || out.AdminDomainTarget == "" {
 		return errors.New("shared index outputs are incomplete")
 	}
+	if name, e := validateSnapshotTable(out.RuntimeTableARN, w.account, o.Region); e != nil || name != out.RuntimeTableName {
+		return errors.New("shared runtime table outputs are invalid")
+	}
+	w.snapshotTableARN = out.RuntimeTableARN
 	if _, e = newIndexClient(w.r.env, out.APIURL, o.Region, w.environment); e != nil {
 		return e
 	}

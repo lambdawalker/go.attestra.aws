@@ -15,12 +15,13 @@ const b64 = (bytes) =>
     .replaceAll("/", "_")
     .replaceAll("=", "");
 const random = () => b64(crypto.getRandomValues(new Uint8Array(32)));
-async function api(path, options = {}) {
+async function api(path, options = {}, format = "json", fresh = () => true) {
+  const requestToken = token;
   const response = await fetch(path, {
     ...options,
     headers: {
       "content-type": "application/json",
-      authorization: "Bearer " + token,
+      authorization: "Bearer " + requestToken,
       ...options.headers,
     },
     cache: "no-store",
@@ -28,18 +29,17 @@ async function api(path, options = {}) {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    if (response.status === 401) {
-      token = "";
-      $("console").hidden = true;
-      $("login").hidden = false;
-    }
+    // A response can become stale while its error body is being decoded.
+    // Check before clearing session state or the current environment's URLs.
+    if (fresh() && requestToken === token &&
+        (response.status === 401 || (response.status === 403 && /\/artifacts(?:-report)?$/.test(path)))) endSession();
     throw Error(
       response.status === 409 && body.error === "revision_conflict"
         ? "This configuration or grant changed. Refresh and review the latest revision before publishing."
         : body.error || "Service unavailable. Try again.",
     );
   }
-  return response.json();
+  return format === "response" ? response : response.json();
 }
 async function login(enroll = false) {
   const verifier = random(),
@@ -96,9 +96,7 @@ async function callback() {
   token = body.access_token;
   setTimeout(
     () => {
-      token = "";
-      $("console").hidden = true;
-      $("login").hidden = false;
+      endSession();
       tell("Your session expired. Sign in again.");
     },
     Math.max(0, (body.expires_in - 30) * 1000),
@@ -252,7 +250,7 @@ async function publish(body) {
     $("confirmPublish").disabled = false;
   }
 }
-$("refresh").onclick = () => load().catch((e) => tell(e.message));
+$("refresh").onclick = () => selectEnvironment().catch((e) => tell(e.message));
 $("activatePasskey").onclick = async () => {
   try {
     await api("/api/passkey/activate", { method: "POST", body: "{}" });
@@ -292,7 +290,7 @@ $("inspectGrant").onclick = async () => {
 };
 $("login").onclick = () => login().catch((e) => tell(e.message));
 $("logout").onclick = () => {
-  token = "";
+  endSession();
   sessionStorage.removeItem("admin_pkce");
   const url = new URL(settings.loginDomain + "/logout");
   url.search = new URLSearchParams({
@@ -301,7 +299,7 @@ $("logout").onclick = () => {
   });
   location.assign(url);
 };
-$("environment").onchange = () => load().catch((e) => tell(e.message));
+$("environment").onchange = () => selectEnvironment().catch((e) => tell(e.message));
 $("config").onsubmit = (event) => {
   event.preventDefault();
   if (!current) return;
@@ -379,6 +377,88 @@ $("grant").onsubmit = async (event) => {
     tell(e.message);
   }
 };
+let activeView = "artifacts", artifactGeneration = 0, frameURL = null, downloadURL = null;
+function clearArtifacts() {
+  ++artifactGeneration;
+  $("artifactFrame").hidden = true;
+  $("artifactFrame").removeAttribute("src");
+  if (frameURL) URL.revokeObjectURL(frameURL);
+  if (downloadURL) URL.revokeObjectURL(downloadURL);
+  frameURL = downloadURL = null;
+  $("artifactObserved").textContent = "";
+  $("artifactStatus").textContent = "";
+  $("artifactDownload").disabled = true;
+}
+function endSession() {
+  token = ""; ++loadGeneration;
+  clearTimeout(resetTimer);
+  current = proposed = resetState = null;
+  clearArtifacts();
+  $("console").hidden = true;
+  $("login").hidden = false;
+  for (const id of ["logout", "passkey", "activatePasskey", "refresh"]) $(id).hidden = true;
+}
+function viewVisibility() {
+  $("artifactsPanel").hidden = activeView !== "artifacts";
+  $("runtimePanel").hidden = activeView !== "runtime";
+  $("runtimeRevision").hidden = activeView !== "runtime";
+  $("artifactsNav").setAttribute("aria-current", activeView === "artifacts" ? "page" : "false");
+  $("runtimeNav").setAttribute("aria-current", activeView === "runtime" ? "page" : "false");
+}
+async function selectEnvironment() {
+  ++loadGeneration; current = proposed = null;
+  clearTimeout(resetTimer);
+  $("config").hidden = $("review").hidden = $("grant").hidden = $("resetPanel").hidden = true;
+  clearArtifacts(); viewVisibility();
+  if (activeView === "artifacts") await loadArtifacts();
+  else await load();
+}
+async function loadArtifacts() {
+  clearArtifacts();
+  const generation = artifactGeneration, env = $("environment").value;
+  const fresh = () => generation === artifactGeneration && env === $("environment").value;
+  $("artifactStatus").textContent = "Loading latest deployment snapshot…";
+  tell("Environment " + env + " · Artifacts are read only.");
+  try {
+    const response = await api("/api/environments/" + env + "/artifacts-report", {}, "response", fresh);
+    const html = await response.text();
+    if (!fresh()) return;
+    frameURL = URL.createObjectURL(new Blob([html], {type: "text/html"}));
+    $("artifactFrame").src = frameURL;
+    $("artifactFrame").hidden = false;
+    $("artifactDownload").disabled = false;
+    const finished = response.headers.get("x-artifact-finished-at");
+    $("artifactObserved").textContent = finished ? "Snapshot completed: " + new Date(finished).toLocaleString() + " · Individual observations retain their original timestamps in the report." : "Observation timestamps are shown in the report.";
+    $("artifactStatus").textContent = "Latest saved deployment snapshot. Presence and recorded settings may have changed since observation.";
+  } catch (e) {
+    if (!fresh()) return;
+    const messages = {
+      missing_snapshot: "No deployment snapshot yet. Run a complete application deployment after setup to publish one.",
+      corrupt_snapshot: "The saved snapshot could not be validated. Run a new complete deployment to replace it.",
+      report_too_large: "This report is too large to display. Download the whole snapshot JSON to inspect it.",
+    };
+    $("artifactStatus").textContent = messages[e.message] || "Snapshot unavailable. Reload to retry; this does not scan AWS.";
+    $("artifactDownload").disabled = e.message !== "report_too_large";
+  }
+}
+async function downloadArtifacts() {
+  const generation = artifactGeneration, env = $("environment").value;
+  const fresh = () => generation === artifactGeneration && env === $("environment").value;
+  try {
+    const report = await api("/api/environments/" + env + "/artifacts", {}, "json", fresh);
+    if (!fresh()) return;
+    if (downloadURL) URL.revokeObjectURL(downloadURL);
+    downloadURL = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2) + "\n"], {type: "application/json"}));
+    const a = document.createElement("a"); a.href = downloadURL;
+    a.download = "attestra-" + env + "-snapshot.json"; a.click();
+  } catch (e) {
+    if (fresh()) $("artifactStatus").textContent = "Snapshot download unavailable. Reload to retry.";
+  }
+}
+$("artifactsNav").onclick = () => { activeView = "artifacts"; viewVisibility(); if (!frameURL) loadArtifacts(); };
+$("runtimeNav").onclick = () => { activeView = "runtime"; viewVisibility(); if (!current) load().catch(e => tell(e.message)); };
+$("artifactReload").onclick = loadArtifacts;
+$("artifactDownload").onclick = downloadArtifacts;
 (async () => {
   settings = await fetch("/settings", { cache: "no-store" }).then((r) =>
     r.json(),
@@ -402,7 +482,7 @@ $("grant").onsubmit = async (event) => {
       return;
     }
     $("console").hidden = false;
-    await load();
+    await selectEnvironment();
   } else {
     $("login").hidden = false;
     tell(

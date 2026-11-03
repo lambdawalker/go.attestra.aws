@@ -10,7 +10,7 @@ require (
 	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002
 	github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261103032703-915eb97b7002
 	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
-	github.com/lambdawalker/go.infra.composer v0.0.0-20261103191159-60f558f75e08
+	github.com/lambdawalker/go.infra.composer v0.0.0-20261103224925-d8340809719c
 	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261103142306-5d896c43edf3
 	github.com/pulumi/pulumi/sdk/v3 v3.273.0
 )

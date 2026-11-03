@@ -108,6 +108,12 @@ func TestIndexInfrastructure(t *testing.T) {
 			if m.resources["admin-publish"].Inputs["authorizerId"].StringValue() != "admin-jwt-id" {
 				t.Fatal("admin publish lacks dedicated authorizer")
 			}
+			for _, name := range []string{"admin-artifacts", "admin-artifacts-report"} {
+				route := m.resources[name].Inputs
+				if route["authorizationType"].StringValue() != "JWT" || route["authorizerId"].StringValue() != "admin-jwt-id" || route["authorizationScopes"].ArrayValue()[0].StringValue() != "aws.cognito.signin.user.admin" {
+					t.Fatal("artifact route lacks native scoped JWT", name)
+				}
+			}
 			if !m.resources["environment-registry"].RegisterRPC.GetProtect() {
 				t.Fatal("shared registry lacks deletion protection")
 			}

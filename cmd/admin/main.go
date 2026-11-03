@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/lambdawalker/go.apexfission.aws.auth/runtimeconfig"
 	"github.com/lambdawalker/go.attestra.aws/adminapi"
+	"github.com/lambdawalker/go.attestra.aws/artifactsnapshot"
 	"github.com/lambdawalker/go.attestra.aws/internal/awshttp"
 	"log"
 	"os"
@@ -19,6 +20,7 @@ func main() {
 		log.Fatal(e)
 	}
 	h := adminapi.Handler{Service: runtimeconfig.Service{Store: runtimeconfig.Store{DB: dynamodb.NewFromConfig(cfg), Table: os.Getenv("RUNTIME_TABLE")}}, Issuer: os.Getenv("ADMIN_ISSUER"), ClientID: os.Getenv("ADMIN_CLIENT_ID"), Origin: os.Getenv("ADMIN_ORIGIN"), LoginDomain: os.Getenv("ADMIN_LOGIN_DOMAIN")}
+	h.Artifacts = artifactsnapshot.Reader{DB: dynamodb.NewFromConfig(cfg), Table: os.Getenv("RUNTIME_TABLE")}
 	h.Reset = adminapi.LambdaResetClient{HTTP: awshttp.Client{Config: cfg}, FunctionPrefix: os.Getenv("RESET_FUNCTION_PREFIX")}
 	if _, e := adminapi.ResetFunctionName(os.Getenv("RESET_FUNCTION_PREFIX"), "configuration-check"); e != nil {
 		log.Fatal("invalid RESET_FUNCTION_PREFIX")

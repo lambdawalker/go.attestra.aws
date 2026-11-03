@@ -59,7 +59,7 @@ func (p *processRunner) Exec(dir string, capture bool, name string, args ...stri
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
 	cmd.Env = awsenv.WithoutCredentials(os.Environ())
-	if (name == "aws" || name == "pulumi" || (name == "go" && len(args) > 1 && args[0] == "run" && args[1] == "./cmd/admin-setup")) && p.env != nil {
+	if (name == "aws" || name == "pulumi" || (name == "go" && len(args) > 1 && args[0] == "run" && (args[1] == "./cmd/admin-setup" || args[1] == "./cmd/artifact-snapshot"))) && p.env != nil {
 		cmd.Env = p.env
 	}
 	if name == "pulumi" && len(args) > 0 && (args[0] == "preview" || args[0] == "up") && filepath.Base(dir) == "infra" {
@@ -105,6 +105,14 @@ func (p *processRunner) Exec(dir string, capture bool, name string, args ...stri
 		fmt.Printf("\n→ %s %s\n", name, strings.Join(args, " "))
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	}
+	if name == "pulumi" && len(args) > 0 && args[0] == "up" && p.reportActive != nil {
+		p.reportActive.upExecuted = true
+		for _, arg := range args {
+			if arg == "--target" || strings.HasPrefix(arg, "--target=") || arg == "--exclude" || strings.HasPrefix(arg, "--exclude=") {
+				p.reportActive.targeted = true
+			}
+		}
 	}
 	runErr := cmd.Run()
 	if eventLog != "" {

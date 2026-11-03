@@ -1,0 +1,8 @@
+# Read-only Artifact Explorer Implementation Plan
+Goal: authenticated report-style artifact explorer using latest deployment snapshot.
+Architecture: Composer shared HTML filters; app snapshot codec/read routes, deployment publication and embedded explorer navigation. Existing runtime table and deployment identity, no additional cloud data stores.
+Spec: ../specs/2026-11-03-read-only-artifact-explorer.md. User requested implementation after agreeing read-only scope; execute without another approval pause.
+Global constraints: scope/environment authorization before report access; bounded safe data, no provider writes from dashboard; explicit snapshot age; no live cloud validation; no sibling module replacements; preserve pending admin branch.
+Review focus: cross-environment requests, stale response after switch/logout, malicious report metadata, oversized/corrupt snapshots, old snapshot overwrite and publication failure.
+Task1 Composer: add hierarchy-preserving filters and count/empty feedback in reporting/report.html with Node tests; Go reporting tests; commit and scoped review. Publish branch/PR commit so app can pin public version.
+Task2 App: typed bounded snapshot package/codec, authorized JSON+HTML routes and native protected routes; deployment report lifecycle publication and scoped IAM, private temporary payload; admin navigation/read-only embedded UI, cached reload/download/empty/error states; docs. Tests before implementation for boundaries and snapshot storage, all4module tests/vet + Node/archive check. Commit, scoped review then final whole change review, publish appPR.
