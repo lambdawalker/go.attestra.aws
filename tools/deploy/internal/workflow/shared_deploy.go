@@ -20,7 +20,7 @@ func validateDeployScope(scope string, flags []string) error {
 	if scope != "shared" && scope != "both" {
 		return errors.New("-scope must be app, shared, or both")
 	}
-	allowed := map[string]bool{"scope": true, "repo-root": true, "region": true, "profile": true, "sso": true, "login": true}
+	allowed := map[string]bool{"timed-confirm": true, "scope": true, "repo-root": true, "region": true, "profile": true, "sso": true, "login": true}
 	if scope == "both" {
 		allowed["stack"] = true
 		allowed["backend"] = true

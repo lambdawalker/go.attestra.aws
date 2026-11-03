@@ -23,11 +23,12 @@ func Run() error {
 	if len(os.Args) == 3 && os.Args[1] == "-credential-process" {
 		return runCredentialProcess(os.Args[2])
 	}
-	var associations bool
+	var associations, timedConfirm bool
 	var scope string
 	flag.StringVar(&scope, "scope", "app", "Deployment scope: app (backend), shared (index/admin), or both")
 	var o options
 	var setupGitHub, bootstrap, build, teardown, forceSetup, freshCredentials, manageVault, teardownIndex, nuke, check, fastCheck bool
+	flag.BoolVar(&timedConfirm, "timed-confirm", false, "Continue routine deployment confirmations after 5 seconds unless cancelled")
 	flag.BoolVar(&associations, "associations", false, "Manage and publish Android signing approvals without a full deployment")
 	flag.StringVar(&o.ExportAndroid, "export-android", "", "Export deployed public Android settings to a properties file without deployment")
 	flag.BoolVar(&manageVault, "manage-credentials", false, "Manage the local credential vault without running setup")
@@ -59,6 +60,14 @@ func Run() error {
 	}
 	var supplied []string
 	flag.Visit(func(f *flag.Flag) { supplied = append(supplied, f.Name) })
+	if err := validateTimedConfirmationMode(timedConfirm, supplied); err != nil {
+		return err
+	}
+	restoreConfirmations := ui.SetTimedConfirmations(timedConfirm)
+	defer restoreConfirmations()
+	if timedConfirm {
+		fmt.Println("Timed confirmations: routine approvals continue after 5 seconds unless cancelled.")
+	}
 	if err := validateComposerNukeFlags(nuke, teardown, supplied); err != nil {
 		return err
 	}
@@ -244,7 +253,7 @@ func Run() error {
 		return errors.New("invalid AWS identity response")
 	}
 	fmt.Printf("Account: %s\nIdentity: %s\nRegion: %s\nState: %s\nStack: %s\n", id.Account, id.Arn, o.Region, o.Backend, o.Stack)
-	if err := ui.Confirm("Use this AWS identity and state location?"); err != nil {
+	if err := ui.Continue("Use this AWS identity and state location?"); err != nil {
 		return err
 	}
 	if err := checkBucket(runner, o, id.Account); err != nil {

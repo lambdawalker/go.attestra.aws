@@ -213,7 +213,7 @@ func runGitHubSetup(root string, full, force, freshCredentials bool) error {
 		fmt.Println("Passphrase: store encrypted secret.")
 	}
 	if !full {
-		if err := ui.Confirm("Save this GitHub environment configuration?"); err != nil {
+		if err := ui.Continue("Save this GitHub environment configuration?"); err != nil {
 			return err
 		}
 	}

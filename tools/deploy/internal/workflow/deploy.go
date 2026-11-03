@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
 	"net/url"
 	"os"
 	"os/exec"
@@ -39,6 +40,10 @@ type processRunner struct {
 }
 
 func (p *processRunner) Exec(dir string, capture bool, name string, args ...string) ([]byte, error) {
+	args, err := timedPulumiArgs(name, args, ui.TimedConfirmationsEnabled(), ui.Continue)
+	if err != nil {
+		return nil, err
+	}
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
 	cmd.Env = awsenv.WithoutCredentials(os.Environ())
