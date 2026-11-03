@@ -2,7 +2,6 @@ package application
 
 import (
 	"errors"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -23,8 +22,13 @@ func TestApplicationInjectsAuthenticationAndAdditionalFeature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(p.Order(), []string{"application-runtime.existing", "authentication.backend", "email-verification.backend", "signature.verify"}) {
-		t.Fatal(p.Order())
+	order := p.Order()
+	positions := map[string]int{}
+	for i, name := range order {
+		positions[name] = i
+	}
+	if len(order) != 6 || positions["card-capture.storage"] >= positions["authentication.backend"] || positions["authentication.backend"] >= positions["card-capture.backend"] || positions["authentication.backend"] >= positions["email-verification.backend"] || positions["authentication.backend"] >= positions["signature.verify"] {
+		t.Fatal(order)
 	}
 	if p.Bindings()[0].Origin != "explicit" {
 		t.Fatal(p.Bindings())
@@ -76,8 +80,8 @@ func TestEmailVerificationIsASeparateExplicitFeature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(p.Resources()) != 3 {
-		t.Fatalf("expected shared state plus two independent features, got %d", len(p.Resources()))
+	if len(p.Resources()) != 5 {
+		t.Fatalf("expected shared state plus three independent features and capture storage, got %d", len(p.Resources()))
 	}
 	found := false
 	for _, b := range p.Bindings() {

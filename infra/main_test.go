@@ -91,7 +91,7 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 			t.Fatal("route lost API parent")
 		}
 	}
-	for name, want := range map[string]string{"email-signup": "email-verification", "email-http-api": "authentication", "environment-reset": "application"} {
+	for name, want := range map[string]string{"email-signup": "email-verification", "email-http-api": "authentication", "environment-reset": "application", "capture": "card-capture", "capture-worker": "card-capture", "capture-dispatcher": "card-capture", "id-captures": "card-capture", "id-evidence": "card-capture"} {
 		var item pulumi.MockResourceArgs
 		for _, r := range m.resources {
 			if r.Name == name {
@@ -101,6 +101,9 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 		owner := "go.attestra.aws"
 		if want == "authentication" {
 			owner = "go.apexfission.aws.auth"
+		}
+		if want == "card-capture" {
+			owner = "go.appexfission.aws.card-capture"
 		}
 		if want == "email-verification" {
 			owner = "go.apexfission.aws.verifyemail"
@@ -188,27 +191,31 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 	}
 }
 
-func TestMissingVerificationArchiveFailsWholeAppBeforeRegistration(t *testing.T) {
-	dir := t.TempDir()
-	for _, a := range artifacts.Lambdas() {
-		if a.Name == "confirm" {
-			continue
-		}
-		if err := os.WriteFile(filepath.Join(dir, a.Name+".zip"), []byte("fixture"), 0600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "runtime", "attestra-application:runtimeTableArn": "arn:runtime", "attestra-application:appOrigin": "https://App.Example.Test", "attestra-application:senderDomain": "example.test", "attestra-application:senderAddress": "verify@example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString(make([]byte, 32))}
-	data, _ := json.Marshal(cfg)
-	t.Setenv("PULUMI_CONFIG", string(data))
-	m := &monitor{}
-	err := pulumi.RunErr(deploy, pulumi.WithMocks("attestra-application", "dev", m))
-	if err == nil || !strings.Contains(err.Error(), "confirm.zip") {
-		t.Fatal("missing verification artifact accepted", err)
-	}
-	for _, r := range m.resources {
-		if strings.HasPrefix(r.TypeToken, "aws:") {
-			t.Fatal("partial deployment before verification preflight", r.Name)
-		}
+func TestMissingFeatureArchiveFailsWholeAppBeforeRegistration(t *testing.T) {
+	for _, missing := range []string{"confirm", "capture-worker"} {
+		t.Run(missing, func(t *testing.T) {
+			dir := t.TempDir()
+			for _, a := range artifacts.Lambdas() {
+				if a.Name == missing {
+					continue
+				}
+				if err := os.WriteFile(filepath.Join(dir, a.Name+".zip"), []byte("fixture"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			cfg := map[string]string{"attestra-application:artifactDir": dir, "attestra-application:runtimeTableName": "runtime", "attestra-application:runtimeTableArn": "arn:runtime", "attestra-application:appOrigin": "https://App.Example.Test", "attestra-application:senderDomain": "example.test", "attestra-application:senderAddress": "verify@example.test", "attestra-application:proofKey": base64.StdEncoding.EncodeToString(make([]byte, 32))}
+			data, _ := json.Marshal(cfg)
+			t.Setenv("PULUMI_CONFIG", string(data))
+			m := &monitor{}
+			err := pulumi.RunErr(deploy, pulumi.WithMocks("attestra-application", "dev", m))
+			if err == nil || !strings.Contains(err.Error(), missing+".zip") {
+				t.Fatal("missing feature artifact accepted", err)
+			}
+			for _, r := range m.resources {
+				if strings.HasPrefix(r.TypeToken, "aws:") {
+					t.Fatal("partial deployment before feature preflight", r.Name)
+				}
+			}
+		})
 	}
 }

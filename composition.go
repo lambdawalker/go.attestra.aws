@@ -9,6 +9,7 @@ import (
 
 	auth "github.com/lambdawalker/go.apexfission.aws.auth/feature"
 	verify "github.com/lambdawalker/go.apexfission.aws.verifyemail/feature"
+	card "github.com/lambdawalker/go.appexfission.aws.card-capture/feature"
 	composer "github.com/lambdawalker/go.infra.composer"
 	"github.com/lambdawalker/go.infra.composer/configuration"
 )
@@ -16,6 +17,7 @@ import (
 const (
 	AuthenticationID    = "authentication"
 	EmailVerificationID = "email-verification"
+	CardCaptureID       = "card-capture"
 	RuntimeID           = "application-runtime"
 	RuntimeKind         = "attestra:runtime:Reference"
 )
@@ -35,19 +37,28 @@ func New(runtime RuntimeBinding, additional ...*composer.Feature) (*composer.App
 	for _, f := range additional {
 		if f != nil {
 			for _, r := range f.Resources {
-				if r.Kind == auth.Kind || r.Kind == verify.Kind {
-					return nil, errors.New("native adapters support one authentication and one verification backend per stack")
+				if r.Kind == auth.Kind || r.Kind == verify.Kind || r.Kind == card.Kind || r.Kind == card.KindStorage {
+					return nil, errors.New("native adapters support one authentication, one verification and one capture backend per stack")
 				}
 			}
 		}
 	}
 	shared := &composer.Feature{ID: RuntimeID, Source: composer.Origin(), Resources: []composer.Resource{{ID: "existing", Kind: RuntimeKind, Source: composer.Origin(), Inputs: map[string]composer.Value{"table_name": composer.Literal(runtime.TableName), "table_arn": composer.Literal(runtime.TableARN)}, Outputs: map[string]composer.Field{"table_name": {Type: composer.String}, "table_arn": {Type: composer.String}}}}, Offerings: []composer.Offering{{ID: "policy", Contract: auth.RuntimeContract(), TestOnly: runtime.TestOnly, Values: map[string]composer.Value{"table_name": composer.ResourceRef(RuntimeID+".existing", "table_name"), "table_arn": composer.ResourceRef(RuntimeID+".existing", "table_arn")}}}}
-	features := append([]*composer.Feature{shared, auth.Declare(AuthenticationID), verify.Declare(EmailVerificationID)}, additional...)
+	features := append([]*composer.Feature{shared, auth.DeclareWithCapture(AuthenticationID), verify.Declare(EmailVerificationID), card.Declare(CardCaptureID)}, additional...)
 	app := composer.NewApplication("attestra", features...)
 	if err := app.Inject(AuthenticationID, auth.RuntimeRequirement, RuntimeID, "policy"); err != nil {
 		return nil, err
 	}
 	if err := app.Inject(EmailVerificationID, verify.IntegrationRequirement, AuthenticationID, "email_integration"); err != nil {
+		return nil, err
+	}
+	if err := app.Inject(AuthenticationID, auth.CaptureFactsRequirement, CardCaptureID, "facts"); err != nil {
+		return nil, err
+	}
+	if err := app.Inject(CardCaptureID, card.RuntimeRequirement, RuntimeID, "policy"); err != nil {
+		return nil, err
+	}
+	if err := app.Inject(CardCaptureID, card.IntegrationRequirement, AuthenticationID, "capture_integration"); err != nil {
 		return nil, err
 	}
 	return app, nil
@@ -81,6 +92,17 @@ func EmailVerificationConfiguration(environment string, settings AuthSettings) (
 	}
 	return configurationPlan(verify.ConfigurationContract(EmailVerificationID, environment), verificationProperties(), EmailVerificationID, settings)
 }
+func CardCaptureConfiguration(environment string, settings AuthSettings) (*configuration.Plan, error) {
+	if _, err := AuthenticationConfiguration(environment, settings); err != nil {
+		return nil, err
+	}
+	properties := []auth.Configurable{}
+	for _, p := range card.ConfigurableProperties() {
+		properties = append(properties, auth.Configurable{Name: p.Name, NativeKey: p.NativeKey, Risk: p.Risk, Reader: p.Reader, Type: p.Type, Category: p.Category, Sensitivity: p.Sensitivity})
+	}
+	return configurationPlan(card.ConfigurationContract(CardCaptureID, environment), properties, CardCaptureID, settings)
+}
+
 func verificationProperties() []auth.Configurable {
 	out := []auth.Configurable{}
 	for _, p := range verify.ConfigurableProperties() {

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/lambdawalker/go.apexfission.aws.auth/capture"
 	"github.com/lambdawalker/go.apexfission.aws.auth/envreset"
 	"github.com/lambdawalker/go.apexfission.aws.auth/passkey"
 	"github.com/lambdawalker/go.apexfission.aws.auth/runtimeconfig"
@@ -147,7 +146,7 @@ func (h Handler) Handle(ctx context.Context, r events.APIGatewayV2HTTPRequest) (
 			if e := decode(r, &in); e != nil {
 				return failure(e), nil
 			}
-			if (in.Action != "start" && in.Action != "resume") || in.Confirmation != env || !capture.ValidOperation(in.Operation) {
+			if (in.Action != "start" && in.Action != "resume") || in.Confirmation != env || !envreset.ValidOperation(in.Operation) {
 				return failure(runtimeconfig.ErrInvalid), nil
 			}
 			request.Action = in.Action

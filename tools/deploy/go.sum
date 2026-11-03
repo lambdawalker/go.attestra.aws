@@ -64,10 +64,12 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f h1:Y/CXytFA4m6baUTXGLOoWe4PQhGxaX0KpnayAqC48p4=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f/go.mod h1:vw97MGsxSvLiUE2X8qFplwetxpGLQrlU1Q9AUEIzCaM=
-github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102205618-1e739655eb8c h1:G5sgszdslKcIB9YUKzNQNxGTbkmrrFXILaPT77hUsSM=
-github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102205618-1e739655eb8c/go.mod h1:g2qqqBQojSl/ssg+HroCiJJEuACUQyrwqGTDI9jhQ7U=
+github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103032901-da2c73bbda58 h1:at7LpI1MlaBZ0vTvTkFbFEn96aEMVFAym2PfiF3i/Bk=
+github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103032901-da2c73bbda58/go.mod h1:1CPfGxfSndSb+FWlfd0uEJIcAXeZ3EvUQnls5inm6XI=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413 h1:M3oyS9HL2DaZU2JS3YY9KDKxGT7J9Lv7coBJuZd8W7w=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002 h1:5S5N0/kYEjBfqdmEiYJL92jXE/fQ7f7/+rErA7f2gmQ=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002/go.mod h1:e8XZ85OOMhn6H5XS94WQkuPkGR/NS7h4RkWRPMx4tR8=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103025523-e8b629977814 h1:qXlpiwHb9fjeAP5cIxlulJitWHAwTHBSQbphaHCj5xM=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103025523-e8b629977814/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
