@@ -15,6 +15,7 @@ import (
 )
 
 type Handler struct {
+	Artifacts                             SnapshotReader
 	Reset                                 ResetClient
 	Passkeys                              *PasskeyMFA
 	Service                               runtimeconfig.Service
@@ -129,6 +130,9 @@ func (h Handler) Handle(ctx context.Context, r events.APIGatewayV2HTTPRequest) (
 	if e != nil {
 		return failure(e), nil
 	}
+	if method == "GET" && len(p) == 2 && (p[1] == "artifacts" || p[1] == "artifacts-report") {
+		return h.artifacts(ctx, env, p[1] == "artifacts-report"), nil
+	}
 	if len(p) == 2 && p[1] == "reset" && (method == "GET" || method == "POST") {
 		if !g.ManageGrants {
 			return failure(runtimeconfig.ErrForbidden), nil
@@ -242,5 +246,5 @@ func (h Handler) Handle(ctx context.Context, r events.APIGatewayV2HTTPRequest) (
 	return failure(runtimeconfig.ErrNotFound), nil
 }
 func asset(kind, body string) events.APIGatewayV2HTTPResponse {
-	return events.APIGatewayV2HTTPResponse{StatusCode: 200, Headers: map[string]string{"content-type": kind, "cache-control": "no-store", "content-security-policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://*.amazoncognito.com; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'", "strict-transport-security": "max-age=31536000; includeSubDomains", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer"}, Body: body}
+	return events.APIGatewayV2HTTPResponse{StatusCode: 200, Headers: map[string]string{"content-type": kind, "cache-control": "no-store", "content-security-policy": "default-src 'none'; script-src 'self' " + reportHashes["script"] + "; style-src 'self' " + reportHashes["style"] + "; frame-src blob:; connect-src 'self' https://*.amazoncognito.com; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'", "strict-transport-security": "max-age=31536000; includeSubDomains", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer"}, Body: body}
 }

@@ -146,3 +146,7 @@ verify those routes are adopted rather than created before deploying. Avoid
 timed approvals for this migration review. Do not delete the existing routes or
 remove their state entries to work around a conflict. If they are absent from
 state, inspect the stack and API identities before choosing an import/recovery.
+
+### Read-only dashboard artifact explorer
+
+The authenticated console opens on the latest saved deployment snapshot. Composer renders artifact cards, hierarchy, filters, sorting and allowlisted recorded configuration inside an isolated iframe. Reload reads saved evidence and does not scan AWS. Runtime configuration remains a separate navigation choice. See [rollout, publication, limits and example report](docs/artifact-explorer.md). Existing environments require a full setup rerun to upgrade the shared UI and grant the exact snapshot PutItem permission, followed by a complete application deployment to publish the first snapshot.

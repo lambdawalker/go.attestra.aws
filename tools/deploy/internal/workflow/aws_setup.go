@@ -409,6 +409,13 @@ func setupAWSRole(g *github.Client, repo, environment string, metadata repositor
 	if bootstrap != nil && bootstrap.indexAPIArn != "" {
 		policies["attestra-control-plane"] = indexPublicationPolicy(bootstrap.indexAPIArn, o.Stack)
 	}
+	if bootstrap != nil && bootstrap.snapshotTableARN != "" {
+		policy, e := snapshotPublicationPolicy(bootstrap.snapshotTableARN, id.Account, o.Region, o.Stack)
+		if e != nil {
+			return e
+		}
+		policies["attestra-artifact-snapshot"] = policy
+	}
 	iamDocument := policies["attestra-iam"].(map[string]any)
 	iamDocument["Statement"] = append(iamDocument["Statement"].([]map[string]any), map[string]any{
 		"Effect": "Deny", "Action": "iam:*", "Resource": []string{"arn:aws:iam::" + id.Account + ":role/" + name, "arn:aws:iam::" + id.Account + ":role/*/" + name},

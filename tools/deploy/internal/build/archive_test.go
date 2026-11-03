@@ -25,3 +25,18 @@ func TestArchiveHasLinuxExecutableBootstrap(t *testing.T) {
 		t.Fatal("archive lacks executable bootstrap")
 	}
 }
+
+func TestSnapshotHelperRemainsHostCommandAndAdminIsBundled(t *testing.T) {
+	admin := false
+	for _, job := range lambdaBuilds() {
+		if job.source == "./cmd/artifact-snapshot" {
+			t.Fatal("snapshot host helper packaged as Lambda")
+		}
+		if job.source == "./cmd/admin" {
+			admin = true
+		}
+	}
+	if !admin {
+		t.Fatal("dashboard missing from Lambda bundle")
+	}
+}

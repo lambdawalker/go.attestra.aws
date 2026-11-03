@@ -139,3 +139,7 @@ The prompt identifies the operation and states that it will continue automatical
 This is an interactive deployment mode, not a way to supply missing configuration. Credentials, text input, menus, repository/OIDC choices, signing-identity approvals, and vault-saving/replacement prompts still require an answer. Timed approvals cannot be combined with teardown/nuke, state migration, lock recovery, credential management, signing-approval management, or CI mode. The flag applies only to the current invocation and is not saved as a preference.
 
 The reusable policy comes from Composer’s `approval` package. Attestra supplies the five-second setting, operation classification, terminal rendering, CLI flag and Pulumi command integration; Composer controls deadline-versus-cancellation semantics and keeps protected operations manual.
+
+### Dashboard snapshots
+
+Complete untargeted application deployments invoke the local `cmd/artifact-snapshot` helper after report collection. This host helper receives the isolated renewable SDK credentials and a private report-file path; it is never packaged as a Lambda. Local reporting/refresh/preview and shared deployments do not write snapshots. Remote failures add `snapshot_publish_failed` to local reports without changing the original deployment outcome. Existing environment deployment roles need full setup rerun to acquire the exact table/environment PutItem policy. See [artifact explorer rollout and limits](../../docs/artifact-explorer.md).

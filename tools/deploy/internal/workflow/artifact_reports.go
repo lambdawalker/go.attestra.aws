@@ -323,6 +323,7 @@ type artifactAttempt struct {
 	report, cached           reporting.Report
 	upAttempted              bool
 	upSucceeded              bool
+	upExecuted, targeted     bool
 }
 
 func beginArtifactAttempt(p *processRunner, r commandRunner, root, dir, stack, operation string) *artifactAttempt {
@@ -477,6 +478,7 @@ func (a *artifactAttempt) finish(runErr error) {
 			a.report.Metadata.Outcome = "infrastructure_succeeded_followup_failed"
 		}
 	}
+	a.publishSnapshot()
 	a.persist()
 	a.p.lastReport = a
 	fmt.Fprintln(os.Stderr, "Artifact reports:", a.output)
