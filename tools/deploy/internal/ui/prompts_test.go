@@ -1,14 +1,13 @@
 package ui
 
 import (
-	"errors"
 	"io"
 	"strings"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
+	"github.com/lambdawalker/go.infra.composer/approval"
 )
 
 func TestContinuationFormTimeoutAndAnswers(t *testing.T) {
@@ -42,17 +41,6 @@ func TestContinuationFormTimeoutAndAnswers(t *testing.T) {
 }
 
 func TestConfirmationOnlyTimeoutCanAutoContinue(t *testing.T) {
-	for _, err := range []error{huh.ErrUserAborted, huh.ErrTimeoutUnsupported, errors.New("terminal unavailable")} {
-		if got := confirmationResult(false, err, true); !errors.Is(got, err) {
-			t.Fatal("ignored error", err, got)
-		}
-	}
-	if confirmationResult(false, nil, true) == nil {
-		t.Fatal("ignored Cancel")
-	}
-	if confirmationResult(false, huh.ErrTimeout, false) == nil {
-		t.Fatal("manual prompt auto-approved")
-	}
 	if TimedConfirmationDelay != 5*time.Second {
 		t.Fatal(TimedConfirmationDelay)
 	}
@@ -75,5 +63,18 @@ func TestTerminalFailureNeverAutoApproves(t *testing.T) {
 	err := runContinuation(form, &yes, time.Second)
 	if err == nil {
 		t.Fatal("terminal failure became deployment approval")
+	}
+}
+
+func TestManualAdapterRequiresAnswerEvenWithModeEnabled(t *testing.T) {
+	restore := SetTimedConfirmations(true)
+	defer restore()
+	for _, input := range []string{"y", "n"} {
+		yes := false
+		form := continuationForm("Manual approval", &yes).WithProgramOptions(tea.WithoutRenderer()).WithInput(strings.NewReader(input)).WithOutput(io.Discard)
+		err := runApproval(approval.Policy{}, approval.Sensitive, form, &yes)
+		if (err == nil) != (input == "y") {
+			t.Fatal(input, err)
+		}
 	}
 }

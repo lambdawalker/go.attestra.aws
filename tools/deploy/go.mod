@@ -16,7 +16,6 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
 	github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7 // indirect
-	github.com/charmbracelet/bubbletea v1.3.6 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
 	github.com/charmbracelet/x/ansi v0.9.3 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
@@ -41,12 +40,13 @@ replace github.com/lambdawalker/go.attestra.aws => ../..
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.5
+	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/charmbracelet/huh v0.8.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/x/term v0.2.1
 	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102205618-1e739655eb8c
 	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
-	github.com/lambdawalker/go.infra.composer v0.0.0-20261102194100-118b67aac4d9
+	github.com/lambdawalker/go.infra.composer v0.0.0-20261103025523-e8b629977814
 	golang.org/x/crypto v0.38.0
 	golang.org/x/sys v0.33.0
 	golang.org/x/text v0.25.0

@@ -68,8 +68,8 @@ github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102205618-1e739655eb
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261102205618-1e739655eb8c/go.mod h1:g2qqqBQojSl/ssg+HroCiJJEuACUQyrwqGTDI9jhQ7U=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413 h1:M3oyS9HL2DaZU2JS3YY9KDKxGT7J9Lv7coBJuZd8W7w=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261102194100-118b67aac4d9 h1:oTTgBxRfsh3JV6kL5jA0R2S/e4IobGlz+yTp5CfpZgs=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261102194100-118b67aac4d9/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261103025523-e8b629977814 h1:qXlpiwHb9fjeAP5cIxlulJitWHAwTHBSQbphaHCj5xM=
+github.com/lambdawalker/go.infra.composer v0.0.0-20261103025523-e8b629977814/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
