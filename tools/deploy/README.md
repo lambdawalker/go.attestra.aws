@@ -129,3 +129,13 @@ not a `DELETED` result: teardown preserves the default recovery window and never
 forces deletion. Active secrets/versions are `REMAINS`; access, malformed-response
 and transport failures are `FAILED` and require investigation. Saved validation
 reports preserve the pending deadline for a later metadata-only follow-up.
+
+## Timed deployment confirmations
+
+Use `deploy.bat -timed-confirm` (Windows) or `./deploy.sh -timed-confirm` to give routine deployment approvals a five-second deadline. `setup.bat -timed-confirm` / `./setup.sh -timed-confirm` and `-scope shared` / `-scope both` support the same mode. Without the flag, confirmations wait for an answer as usual.
+
+The prompt identifies the operation and states that it will continue automatically. Choose Continue to proceed immediately, or Cancel / Ctrl+C to stop. On timeout, the tool reports that it is continuing. Pulumi's final apply prompt is replaced with this timed approval; after approval Pulumi receives `--yes --non-interactive`. Preview and errors still run normally; an error or interruption is never treated as approval.
+
+This is an interactive deployment mode, not a way to supply missing configuration. Credentials, text input, menus, repository/OIDC choices, signing-identity approvals, and vault-saving/replacement prompts still require an answer. Timed approvals cannot be combined with teardown/nuke, state migration, lock recovery, credential management, signing-approval management, or CI mode. The flag applies only to the current invocation and is not saved as a preference.
+
+The reusable policy comes from Composer’s `approval` package. Attestra supplies the five-second setting, operation classification, terminal rendering, CLI flag and Pulumi command integration; Composer controls deadline-versus-cancellation semantics and keeps protected operations manual.

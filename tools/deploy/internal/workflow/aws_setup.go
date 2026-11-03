@@ -471,7 +471,7 @@ func setupAWSRole(g *github.Client, repo, environment string, metadata repositor
 		fmt.Printf("\n%s:\n%s\n", n, policyJSON(policies[n]))
 	}
 	if bootstrap == nil {
-		if err = ui.Confirm("Apply these AWS IAM changes in account " + id.Account + "?"); err != nil {
+		if err = ui.Continue("Apply these AWS IAM changes in account " + id.Account + "?"); err != nil {
 			return err
 		}
 	}

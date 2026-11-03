@@ -15,7 +15,7 @@ import (
 // A completion record routes the UI only; deployment still verifies live state.
 func deploymentStartup(root, repo string, flags []string, choose func() (string, error)) (string, error) {
 	for _, name := range flags {
-		if name != "repo-root" && name != "bootstrap" {
+		if name != "repo-root" && name != "bootstrap" && name != "timed-confirm" {
 			return "explicit", nil
 		}
 	}

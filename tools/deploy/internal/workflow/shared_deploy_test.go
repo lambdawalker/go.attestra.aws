@@ -191,3 +191,11 @@ func TestSharedDeploymentRejectsMissingOrInvalidRequiredOutputs(t *testing.T) {
 		}
 	}
 }
+
+func TestTimedConfirmationsAllowedForSharedAndCombinedDeploy(t *testing.T) {
+	for _, scope := range []string{"shared", "both"} {
+		if err := validateDeployScope(scope, []string{"scope", "timed-confirm"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
