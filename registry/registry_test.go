@@ -1,8 +1,10 @@
 package registry
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"strings"
 	"sync"
 	"testing"
@@ -279,5 +281,35 @@ func TestSignedRegistryDefaultsRouteUsesDeploymentLease(t *testing.T) {
 	out, _ = s.Handle(context.Background(), req)
 	if out.StatusCode != 400 {
 		t.Fatal("cross-env defaults accepted", out)
+	}
+}
+
+type failingRegistryDB struct {
+	memoryDB
+	fail error
+}
+
+func (db *failingRegistryDB) UpdateItem(context.Context, *dynamodb.UpdateItemInput, ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+	return nil, db.fail
+}
+
+func TestBackendFailureLogsCauseWithoutLeakingLeaseToken(t *testing.T) {
+	token := strings.Repeat("a", 48)
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	defer slog.SetDefault(previous)
+	s := Service{DB: &failingRegistryDB{memoryDB: memoryDB{records: map[string]Record{}}, fail: &types.ResourceNotFoundException{Message: aws.String("table not found; token=" + token)}}, Table: "registry"}
+	body, _ := json.Marshal(Change{Operation: "begin", Token: token})
+	req := events.APIGatewayV2HTTPRequest{RawPath: "/v1/environments/dev/changes", Body: string(body), RequestContext: events.APIGatewayV2HTTPRequestContext{RequestID: "request-123", HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{Method: "POST"}}}
+	result, err := s.Handle(context.Background(), req)
+	if err != nil || result.StatusCode != 503 || !strings.Contains(result.Body, "request-123") {
+		t.Fatal(result, err)
+	}
+	if strings.Contains(result.Body, "table not found") || strings.Contains(result.Body, token) {
+		t.Fatal("backend details leaked to response")
+	}
+	if !strings.Contains(logs.String(), "ResourceNotFoundException") || !strings.Contains(logs.String(), "table not found") || !strings.Contains(logs.String(), "request-123") || strings.Contains(logs.String(), token) {
+		t.Fatal(logs.String())
 	}
 }
