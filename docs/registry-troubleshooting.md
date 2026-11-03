@@ -26,3 +26,9 @@ aws logs tail "/aws/lambda/<index-handler-name>" --profile attestra --region us-
 Use the function for this project's shared index if more than one is returned. Locate `registry.change_failed` and match `request_id` to the client error. An AWS error such as `AccessDeniedException`, `ResourceNotFoundException`, or `ValidationException` identifies the next investigation; a503 alone does not establish which one occurred. Logs from before this diagnostic update may contain only normal invocation reports because the handler previously discarded the underlying error.
 
 Retain pending deployment receipts while investigating. This update does not delete state, clear locks, change IAM grants, or retry with a new fencing token. If the tool subsequently reports a pending/interrupted registry operation, use the existing explicit recovery workflow after checking its recorded state.
+
+## Defaults synchronization and reserved attribute names
+
+A `defaults` update of an existing runtime configuration previously used `Override` directly in its DynamoDB condition expression. `OVERRIDE` is a reserved keyword (case-insensitive), so DynamoDB can reject that transaction with a validation error and the registry returns503. The auth runtime store now aliases this name as `#override`; the stored attribute and administrator override protection are unchanged. No data migration is required.
+
+After pulling the application dependency update, deploy the shared scope first using the command above, then retry the original deployment. Updating the local CLI alone does not replace the runtime store compiled into the deployed shared index Lambda. Keep any pending receipt so the existing recovery flow can resume it. If503 persists, correlate the new request ID with `registry.change_failed` rather than assuming the same cause.
