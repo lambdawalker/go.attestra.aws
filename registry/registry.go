@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"sort"
@@ -272,7 +273,19 @@ func (s Service) Handle(ctx context.Context, req events.APIGatewayV2HTTPRequest)
 		if errors.As(e, &conflict) {
 			return response(409, map[string]string{"error": "environment busy or deployment revision superseded"}), nil
 		}
-		return response(503, map[string]string{"error": "registry temporarily unavailable"}), nil
+		code := "unknown"
+		var apiError interface {
+			error
+			ErrorCode() string
+		}
+		if errors.As(e, &apiError) {
+			code = apiError.ErrorCode()
+		}
+		// Keep backend details in operator logs, never in the public response. The
+		// deployment fencing token must not be recorded, even inside SDK messages.
+		detail := strings.ReplaceAll(e.Error(), c.Token, "[redacted]")
+		slog.ErrorContext(ctx, "registry.change_failed", "operation", c.Operation, "environment", parts[2], "request_id", req.RequestContext.RequestID, "error_code", code, "error", detail)
+		return response(503, map[string]string{"error": "registry temporarily unavailable", "requestId": req.RequestContext.RequestID}), nil
 	}
 	return response(200, result), nil
 }

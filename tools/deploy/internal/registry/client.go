@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -86,7 +87,27 @@ func (c *Client) Change(change model.Change) (model.Receipt, error) {
 		if response.StatusCode == 409 {
 			return model.Receipt{}, ErrConflict
 		}
-		last = fmt.Errorf("registry update rejected (HTTP %d); check deployment role execute-api permission and registry logs", response.StatusCode)
+		advice := "check the registry URL, request and shared index logs"
+		if response.StatusCode == 401 || response.StatusCode == 403 {
+			advice = "check deployment credentials, request signing and execute-api permission"
+		}
+		if response.StatusCode >= 500 {
+			advice = "registry backend or integration unavailable; inspect shared index Lambda/API Gateway logs"
+		}
+		requestID := response.Header.Get("X-Amzn-RequestId")
+		if requestID == "" {
+			var payload struct {
+				RequestID string `json:"requestId"`
+			}
+			if json.Unmarshal(data, &payload) == nil {
+				requestID = payload.RequestID
+			}
+		}
+		trace := ""
+		if regexp.MustCompile(`^[A-Za-z0-9_=+/-]{1,128}$`).MatchString(requestID) {
+			trace = "; request ID " + requestID
+		}
+		last = fmt.Errorf("registry update rejected (HTTP %d, operation %s, environment %s); %s%s", response.StatusCode, change.Operation, c.Environment, advice, trace)
 		if response.StatusCode < 500 && response.StatusCode != 429 {
 			return model.Receipt{}, last
 		}

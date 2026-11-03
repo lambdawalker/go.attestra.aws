@@ -67,3 +67,17 @@ func TestIndexUsesRenewedSigningCredentials(t *testing.T) {
 		t.Fatalf("provider calls %d requests %d", calls, count)
 	}
 }
+
+func TestRegistry503PointsToBackendAndRequestID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Amzn-RequestId", "request-123")
+		w.WriteHeader(503)
+		fmt.Fprint(w, `{"error":"registry temporarily unavailable"}`)
+	}))
+	defer server.Close()
+	c := Client{URL: server.URL, Region: "us-east-2", Environment: "dev", Credentials: aws.Credentials{AccessKeyID: "example", SecretAccessKey: "example"}, HTTP: server.Client()}
+	_, err := c.Change(model.Change{Operation: "begin", Token: strings.Repeat("a", 48)})
+	if err == nil || !strings.Contains(err.Error(), "backend") || !strings.Contains(err.Error(), "request-123") || strings.Contains(err.Error(), "execute-api permission") {
+		t.Fatal(err)
+	}
+}
