@@ -3,8 +3,8 @@ module github.com/lambdawalker/go.attestra.aws/infra
 go 1.27.3
 
 require (
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103032901-da2c73bbda58
-	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261103032901-da2c73bbda58
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711
+	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261103044157-02d356bac711
 	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261102205602-8732a1338413
 	github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261102205602-8732a1338413
 	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002

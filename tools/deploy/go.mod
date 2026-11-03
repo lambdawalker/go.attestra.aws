@@ -45,7 +45,7 @@ require (
 	github.com/charmbracelet/huh v0.8.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/x/term v0.2.1
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103032901-da2c73bbda58
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711
 	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
 	github.com/lambdawalker/go.infra.composer v0.0.0-20261103025523-e8b629977814
 	golang.org/x/crypto v0.38.0
