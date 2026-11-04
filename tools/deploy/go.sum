@@ -68,10 +68,8 @@ github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac7
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261103044157-02d356bac711/go.mod h1:1CPfGxfSndSb+FWlfd0uEJIcAXeZ3EvUQnls5inm6XI=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4 h1:iOP1m3Apn0rtaX+r/SXuSB6t3VV5emHajMVfVQlclg4=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
-github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002 h1:5S5N0/kYEjBfqdmEiYJL92jXE/fQ7f7/+rErA7f2gmQ=
-github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261103032703-915eb97b7002/go.mod h1:e8XZ85OOMhn6H5XS94WQkuPkGR/NS7h4RkWRPMx4tR8=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261103191159-60f558f75e08 h1:zutKJOjg9khYyWF+QTUpIiUbnARnH4U3LWwNruY72zk=
-github.com/lambdawalker/go.infra.composer v0.0.0-20261103191159-60f558f75e08/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261104010356-231b46ebd717 h1:4Dz/OgpYeLEdNo7ICLzcfrXjoBXJIorofJnmiyrp/Ss=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261104010356-231b46ebd717/go.mod h1:e8XZ85OOMhn6H5XS94WQkuPkGR/NS7h4RkWRPMx4tR8=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103224925-d8340809719c h1:YocYaOXIaLKAE9xSC0ciXhPMWz1x5Hpp4C04R1HwDkA=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103224925-d8340809719c/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
@@ -106,9 +104,9 @@ golang.org/x/exp v0.0.0-20231006140011-7918f672742d/go.mod h1:ldy0pHrwJyGW56pPQz
 golang.org/x/sync v0.15.0 h1:KWH3jNZsfyT6xfAfKiz6MRNmd46ByHDYaZ7KSkCtdW8=
 golang.org/x/sync v0.15.0/go.mod h1:1dzgHSNfp02xaA81J2MS99Qcpr2w7fw1gpm99rleRqA=
 golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.33.0 h1:q3i8TbbEz+JRD9ywIRlyRAQbM0qF7hu24q3teo2hbuw=
 golang.org/x/sys v0.33.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
-golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/text v0.25.0 h1:qVyWApTSYLk/drJRO5mDlNYskwQznZmkpV2c8q9zls4=
 golang.org/x/text v0.25.0/go.mod h1:WEdwpYrmk1qmdHvhkSTNPm3app7v4rsT8F2UD6+VHIA=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
