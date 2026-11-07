@@ -34,3 +34,6 @@ For a device smoke test, use the same photos before and after rollout. Confirm o
 pair while processing and retake a side in another run. Check that the review uses
 the latest image revision. See [capture routes and admin comparison reports](https://raw.githubusercontent.com/lambdawalker/go.appexfission.aws.card-capture/main/docs/agents/index.md),
 [the Android recipe](https://raw.githubusercontent.com/lambdawalker/android.attestra.auth/main/docs/agents/recipes.md) and [the system journey](https://raw.githubusercontent.com/lambdawalker/design.attestra/main/docs/agents/journeys.md).
+
+For comparison reports, set Pulumi config `captureComparisonAdminRoleArn` to the
+intended AWS IAM reader role and attach the exported read policy to that role.
