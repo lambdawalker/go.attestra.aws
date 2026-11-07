@@ -43,8 +43,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.21.20
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.75.10
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.73.2
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107025346-80c9775e8f70
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107054140-3c536bf9cbd8
 	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4
-	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107025210-ca9f1db35712
+	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107054056-55e8f4033afe
 	github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616
 )
