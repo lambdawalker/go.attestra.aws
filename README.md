@@ -71,7 +71,7 @@ Main deploys ownership tags, safe descriptions and resource inventory for the en
 
 ## Card capture feature
 
-Card capture is composed independently from [go.appexfission.aws.card-capture](https://github.com/lambdawalker/go.appexfission.aws.card-capture), including its three Lambda archives and native resources. See [contracts, reset composition and rollout](docs/card-capture-composition.md).
+Card capture is composed independently from [go.appexfission.aws.card-capture](https://github.com/lambdawalker/go.appexfission.aws.card-capture), including its three Lambda archives and native resources. See [contracts, reset composition, rollout and OCR timing](docs/card-capture-composition.md).
 
 ### Artifact reports and read-only preview
 
