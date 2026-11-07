@@ -97,6 +97,12 @@ Create-intent replay checks disclosure language when the existing record has one
 - **Legacy teardown evidence guards:** refusing to certify old checkpoints without a pre-destroy inventory is a safety boundary. Do not remove it to eliminate a legacy error.
 - Reporting's ARN/provider-ID lookup aliases and CloudFront/Route 53 DNS aliases are current identity resolution/routing mechanisms, not the Pulumi rename bridge in TD-01.
 
+## Local recovery follow-up
+
+- **TD-02.** Migration matches filenames inside the actual checkout directory, including checkouts with brackets in their paths. Regression coverage verifies both backup relocation and the active-lock check in those checkouts. Keep the relocation bridge until operator upgrade evidence is available.
+- **TD-03.** Setup, deployment settings, and the launcher share the same checkpoint recovery order. An environment-qualified checkpoint takes precedence over its backup. Dev then falls back to the unqualified checkpoint and its backup. Regression coverage checks that a legacy backup cannot override newer dev progress. Keep legacy recovery and teardown cleanup until the checkpoint and recovery-bundle inventory is complete.
+- **TD-04.** The setup wizard writes an explicit provider and zone after a successful selection, including selections recovered from older checkpoints. Pulumi's existing Route 53 zone still wins. The fallback remains available for restored checkpoints that predate explicit providers.
+
 ## Audit baseline and follow-up
 
 Reviewed default-branch snapshots:
