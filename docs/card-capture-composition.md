@@ -19,8 +19,10 @@ This extraction does not run an AWS deployment or migrate state. Inspect a Pulum
 The application pins Go auth and card capture in `go.mod`, `infra/go.mod` and
 `tools/deploy/go.mod`. Keep the runtime and infrastructure selections aligned
 when incorporating worker changes. The current source includes the worker
-change to `medium` reasoning effort. The Android host still sends separate
-color JPEGs.
+change to `medium` reasoning effort, early OCR, and immutable administrative
+comparisons. When document policy returns `stitched_pair_supported: true`, Android
+uploads the grayscale front first and then a stitched color pair. Legacy clients
+can still send separate sides.
 
 After updating pins, run `./scripts/build.sh` and
 `python3 scripts/check_lambda_archives.py`. The capture worker archive is
@@ -37,3 +39,5 @@ the latest image revision. See [capture routes and admin comparison reports](htt
 
 For comparison reports, set Pulumi config `captureComparisonAdminRoleArn` to the
 intended AWS IAM reader role and attach the exported read policy to that role.
+The table denies reads when no reader role is configured. Reports preserve the
+first submitted review, final OCR data, and per-field and average scores.
