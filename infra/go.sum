@@ -160,8 +160,12 @@ github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-202
 github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261103183508-9f175d1d1aa4/go.mod h1:wc+HSLF1ZbxS8xDDCrXslQe6Ju8quExmM1Ao4oSlcW0=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-13e8bcc291da h1:iusQB69265dMDzYq9ebK5fpmpuMK/k8F5braFQcC6Qc=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-13e8bcc291da/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107093754-fc617a959cd1 h1:/c4PT+fIwz9iRbUMhCYNypn+WvRuk59wlbw7yrwenkE=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107093754-fc617a959cd1/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107064211-13e8bcc291da h1:B4hoTcwphuK4vBnpkq8LZCJe9wTDNE0rRRMRf52OxII=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107064211-13e8bcc291da/go.mod h1:LQv7AoXbL10C1gREqgaMNOjljHt+jRX4LUtj8pnCuK4=
+github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107093754-fc617a959cd1 h1:HRw4uw1+oWCyV4gxpFBtYfqn4sxCm1b3XpvWIWpk7mU=
+github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107093754-fc617a959cd1/go.mod h1:LQv7AoXbL10C1gREqgaMNOjljHt+jRX4LUtj8pnCuK4=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616 h1:LYdvhMdLaTtYI4a+IhUXJPHecrMrfPOqIJjvUnAogIA=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261103235125-ad4cfd268616 h1:g2Zu7GFpdBuw8Bwb1xOmY20rBbIKYsFkn+RtWedXcLY=

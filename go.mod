@@ -45,6 +45,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.73.2
 	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107054140-3c536bf9cbd8
 	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4
-	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-13e8bcc291da
+	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107093754-fc617a959cd1
 	github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616
 )
