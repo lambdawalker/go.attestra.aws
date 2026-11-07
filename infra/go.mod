@@ -3,12 +3,12 @@ module github.com/lambdawalker/go.attestra.aws/infra
 go 1.27.3
 
 require (
-	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107025346-80c9775e8f70
-	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261107025346-80c9775e8f70
+	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107054140-3c536bf9cbd8
+	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261107054140-3c536bf9cbd8
 	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4
 	github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261103183508-9f175d1d1aa4
-	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107025210-ca9f1db35712
-	github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107025210-ca9f1db35712
+	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107054056-55e8f4033afe
+	github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107054056-55e8f4033afe
 	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
 	github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616
 	github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261103235125-ad4cfd268616
