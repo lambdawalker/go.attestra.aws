@@ -48,8 +48,8 @@ github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107054140-3c536bf9cb
 github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107054140-3c536bf9cbd8/go.mod h1:RghlMaJPHg4iEduoyM1X9MPFpbasKWIp4Pop0/VByqU=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4 h1:iOP1m3Apn0rtaX+r/SXuSB6t3VV5emHajMVfVQlclg4=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
-github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107054056-55e8f4033afe h1:wMrYQzYMNFH4VvJzEEnmsbHaclVcLNaiC5BdHeAqTaM=
-github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107054056-55e8f4033afe/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-13e8bcc291da h1:iusQB69265dMDzYq9ebK5fpmpuMK/k8F5braFQcC6Qc=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-13e8bcc291da/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616 h1:LYdvhMdLaTtYI4a+IhUXJPHecrMrfPOqIJjvUnAogIA=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
