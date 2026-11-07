@@ -52,6 +52,8 @@ github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-1
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-13e8bcc291da/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107093754-fc617a959cd1 h1:/c4PT+fIwz9iRbUMhCYNypn+WvRuk59wlbw7yrwenkE=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107093754-fc617a959cd1/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107100214-62a7e3eac737 h1:NE8gCKCHGXdIOp/U4+FItAV2l+iMefG1/BlEQhA7i04=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107100214-62a7e3eac737/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616 h1:LYdvhMdLaTtYI4a+IhUXJPHecrMrfPOqIJjvUnAogIA=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
