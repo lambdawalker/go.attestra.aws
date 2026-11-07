@@ -74,6 +74,8 @@ github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107093754-f
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107093754-fc617a959cd1/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107100214-62a7e3eac737 h1:NE8gCKCHGXdIOp/U4+FItAV2l+iMefG1/BlEQhA7i04=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107100214-62a7e3eac737/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107102328-045cd72bf278 h1:+zXfdny9wtQ7nzDHdchQ717xjCfE5apqcSENSKXEZyg=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107102328-045cd72bf278/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616 h1:LYdvhMdLaTtYI4a+IhUXJPHecrMrfPOqIJjvUnAogIA=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
