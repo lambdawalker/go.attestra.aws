@@ -39,6 +39,9 @@
 
 Review caught persisted skipping blocking later custom-path imports. Forced setup
 now offers manual entry again; regression tests cover approval and rejection.
-The infrastructure test's existing 165/166 resource-inventory mismatch is also
-present in main's [verification run](https://github.com/lambdawalker/go.attestra.aws/actions/runs/42416147554).
-Validation details and any execution limits are recorded in the pull request.
+Follow-up verification traced the infrastructure test's 165/166 inventory mismatch
+to a missing ownership hook on the card-capture comparison policy. The fix lives
+in [card-capture PR #44](https://github.com/lambdawalker/go.appexfission.aws.card-capture/pull/44),
+and Attestra pins that corrected infrastructure module. The original completeness
+assertion is retained, with diagnostics naming any omitted resources.
+Validation results are recorded in the pull request.

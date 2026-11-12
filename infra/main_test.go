@@ -79,6 +79,16 @@ func TestApplicationComposesPinnedFeatureAndPreservesSecretBoundary(t *testing.T
 		}
 	}
 	if len(inventoryRows) != awsCount {
+		seen := map[string]bool{}
+		for _, row := range inventoryRows {
+			r := row.(map[string]any)
+			seen[r["type"].(string)+"::"+r["logicalName"].(string)] = true
+		}
+		for _, r := range m.resources {
+			if strings.HasPrefix(r.TypeToken, "aws:") && !seen[r.TypeToken+"::"+r.Name] {
+				t.Logf("missing inventory entry: type=%s name=%s custom=%t", r.TypeToken, r.Name, r.Custom)
+			}
+		}
 		t.Fatalf("inventory omitted native resources: got %d, want %d", len(inventoryRows), awsCount)
 	}
 	serialized, _ := json.Marshal(inventoryRows)
