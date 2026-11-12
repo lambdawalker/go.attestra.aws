@@ -16,13 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/huh"
 	"github.com/lambdawalker/go.apexfission.aws.auth/assetlinks"
-	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
 )
 
 // Import only public associations. Empty input leaves any existing website alone.
-func (w *bootstrapWizard) associationDefaults(current string, defaults map[string]string) error {
+func (w *bootstrapWizard) associationDefaults(current string, defaults map[string]string, choose func(string, string, []string) (string, error), confirm func(string) (bool, error)) error {
 	var existing []assetlinks.Application
 	if current != "" {
 		if json.Unmarshal([]byte(current), &existing) != nil {
@@ -36,65 +34,49 @@ func (w *bootstrapWizard) associationDefaults(current string, defaults map[strin
 	if err != nil {
 		return err
 	}
-	local := filepath.Join(home, ".attestra", "associations", w.environment, "developer-associations.json")
-	if data, readErr := os.ReadFile(local); readErr == nil {
-		var discovered []assetlinks.Application
-		if json.Unmarshal(data, &discovered) != nil {
-			return fmt.Errorf("invalid public association JSON: %s", local)
+	paths, discoveryErr := discoverAssociationFiles(home)
+	if discoveryErr != nil {
+		fmt.Printf("Could not search local Android exports: %v. Enter a public JSON path manually.\n", discoveryErr)
+	}
+	if discoveryErr == nil && len(paths) == 0 && !w.forceSetup {
+		if current != "" {
+			return nil
 		}
-		merged, changed, err := mergeAssociations(existing, discovered)
-		if err != nil {
-			return fmt.Errorf("public association file %s: %w", local, err)
+		if _, known := w.remembered("androidAssociationsSkipped"); known {
+			return nil
 		}
-		fmt.Printf("Local Android associations • environment %s\nSource: %s\n", w.environment, local)
-		for _, app := range discovered {
-			fmt.Println("Package:", app.PackageName)
-			for _, fp := range app.Fingerprints {
-				fmt.Println("  SHA-256:", strings.ToUpper(fp))
-			}
-		}
-		if changed {
-			approve := false
-			if err := huh.NewConfirm().Title("Approve these public signing identities for " + w.environment + "?").Description("Adds fingerprints without removing existing approvals. Enables CloudFront hosting on appOrigin; do not approve if that hostname already serves an unrelated website.").Value(&approve).Run(); err != nil {
-				return err
-			}
-			if approve {
-				compact, _ := json.Marshal(merged)
-				defaults["attestra-application:androidAssociations"] = string(compact)
-			}
-		} else {
-			fmt.Println("These public signing identities are already configured.")
-		}
-		return nil
-	} else if !os.IsNotExist(readErr) {
-		return readErr
 	}
-	if current != "" {
-		return nil
-	}
-	if _, known := w.remembered("androidAssociationsSkipped"); known {
-		return nil
-	}
-	path := ""
-	if err := ui.Input("Android association JSON file (blank to keep website hosting unchanged)", &path, false, false).Description("Public package names/fingerprints only. Opting in hosts appOrigin on CloudFront; do not use for a hostname with an existing website. See docs/android-associations.md.").Run(); err != nil {
-		return err
-	}
-	if strings.TrimSpace(path) == "" {
-		return w.remember("androidAssociationsSkipped", "true")
-	}
-	data, err := os.ReadFile(path)
+	path, err := choose(home, w.environment, paths)
 	if err != nil {
 		return err
 	}
-	var apps []assetlinks.Application
-	if err = json.Unmarshal(data, &apps); err != nil {
+	if path == "" {
+		if current != "" {
+			return nil
+		}
+		return w.remember("androidAssociationsSkipped", "true")
+	}
+	incoming, err := readAssociationFile(path)
+	if err != nil {
+		return fmt.Errorf("public association file %s: %w", path, err)
+	}
+	merged, changed, err := mergeAssociations(existing, incoming)
+	if err != nil {
 		return err
 	}
-	if _, err = assetlinks.Render(apps); err != nil {
+	showAssociationFile(path, w.environment, incoming)
+	if !changed {
+		fmt.Println("These public signing identities are already configured.")
+		return nil
+	}
+	approve, err := confirm(w.environment)
+	if err != nil {
 		return err
 	}
-	compact, _ := json.Marshal(apps)
-	defaults["attestra-application:androidAssociations"] = string(compact)
+	if approve {
+		compact, _ := json.Marshal(merged)
+		defaults["attestra-application:androidAssociations"] = string(compact)
+	}
 	return nil
 }
 

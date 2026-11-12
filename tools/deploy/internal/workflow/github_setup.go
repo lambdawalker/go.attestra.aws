@@ -41,7 +41,7 @@ func validateSetupValues(v map[string]string) error {
 func runGitHubSetup(root string, full, force, freshCredentials bool) (resultErr error) {
 	var bootstrap *bootstrapWizard
 	if full {
-		bootstrap = &bootstrapWizard{root: root}
+		bootstrap = &bootstrapWizard{root: root, forceSetup: force}
 		defer bootstrap.cleanup()
 		defer func() {
 			if bootstrap.r != nil && bootstrap.r.reportActive != nil {

@@ -174,6 +174,8 @@ github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-2
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107100214-62a7e3eac737/go.mod h1:LQv7AoXbL10C1gREqgaMNOjljHt+jRX4LUtj8pnCuK4=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107102629-0af6ec941bbe h1:+U1mbHlNGlUZzY46xxDsdk76hO9B1JkEZYQRNFIWa8I=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107102629-0af6ec941bbe/go.mod h1:LQv7AoXbL10C1gREqgaMNOjljHt+jRX4LUtj8pnCuK4=
+github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261112043905-3974be865ed3 h1:iYVHMhRJWTXXKJuzQ+p/LUN1+9Mo901z9AYj1Gazg58=
+github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261112043905-3974be865ed3/go.mod h1:LQv7AoXbL10C1gREqgaMNOjljHt+jRX4LUtj8pnCuK4=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616 h1:LYdvhMdLaTtYI4a+IhUXJPHecrMrfPOqIJjvUnAogIA=
 github.com/lambdawalker/go.infra.composer v0.0.0-20261103235125-ad4cfd268616/go.mod h1:rUs6Et8eAaaUKYxSBJY6bahA7xlGZn2w5gymh6MBRZQ=
 github.com/lambdawalker/go.infra.composer/adapters/pulumi v0.0.0-20261103235125-ad4cfd268616 h1:g2Zu7GFpdBuw8Bwb1xOmY20rBbIKYsFkn+RtWedXcLY=

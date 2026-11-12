@@ -35,6 +35,7 @@ type bootstrapWizard struct {
 	cf                                                *dns.Client
 	memory                                            bootstrapCheckpoint
 	resuming                                          bool
+	forceSetup                                        bool
 	root, temporary, passphrase, account, environment string
 	o                                                 options
 	r                                                 *processRunner
@@ -296,7 +297,7 @@ func (w *bootstrapWizard) prepare(a *awsenv.Client, c credentials, o options, ac
 	if zone != "" {
 		defaults["attestra-application:route53ZoneId"] = zone
 	}
-	if err = w.associationDefaults(current["attestra-application:androidAssociations"].Value, defaults); err != nil {
+	if err = w.associationDefaults(current["attestra-application:androidAssociations"].Value, defaults, chooseAssociationFile, confirmAssociationImport); err != nil {
 		return err
 	}
 	if err = bootstrapStack(w.r, o, defaults, w.memory.StackInitialized, w.saveProofKey); err != nil {

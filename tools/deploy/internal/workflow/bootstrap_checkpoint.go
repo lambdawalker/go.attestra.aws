@@ -127,7 +127,7 @@ func (c bootstrapCheckpoint) belongsTo(repo, environment string) bool {
 // Only explicitly allowlisted non-secret UI settings enter the checkpoint.
 func (w *bootstrapWizard) remember(key, value string) error {
 	switch key {
-	case "authMode", "profile", "baseDomain", "origin", "senderDomain", "sender", "roleName", "route53", "dnsProvider", "immutable", "dnsFingerprint":
+	case "authMode", "profile", "baseDomain", "origin", "senderDomain", "sender", "roleName", "route53", "dnsProvider", "immutable", "dnsFingerprint", "androidAssociationsSkipped":
 	default:
 		return errors.New("setting is not allowed in bootstrap memory")
 	}
