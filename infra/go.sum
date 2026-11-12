@@ -166,6 +166,8 @@ github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107100214-6
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107100214-62a7e3eac737/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107102629-0af6ec941bbe h1:xJBcmMuJ2X1vB+NawHzWzcc8Wz8X5Zf/WnrjFWFBII0=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107102629-0af6ec941bbe/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261112175402-aa6afcf54121 h1:h8eeg4EM+t70Wj7v7Oh22uU9jTGDm0yxZii5hMqNnc8=
+github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261112175402-aa6afcf54121/go.mod h1:yyRtUOVG84JmYxMJiopWfcEj1WS4xd3q3X2i/zESVk8=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107064211-13e8bcc291da h1:B4hoTcwphuK4vBnpkq8LZCJe9wTDNE0rRRMRf52OxII=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107064211-13e8bcc291da/go.mod h1:LQv7AoXbL10C1gREqgaMNOjljHt+jRX4LUtj8pnCuK4=
 github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261107093754-fc617a959cd1 h1:HRw4uw1+oWCyV4gxpFBtYfqn4sxCm1b3XpvWIWpk7mU=

@@ -154,3 +154,14 @@ The authenticated console opens on the latest saved deployment snapshot. Compose
 ## Migration and compatibility debt
 
 See [tech-debt.md](tech-debt.md) for the cross-repository register of migration bridges, legacy data contracts, and the evidence required before removing them.
+
+### Document review rollout (Development)
+
+The capture runtime dependency now includes document type/name, issuing authority
+and country/region/city issuing jurisdiction. Matching Android review changes are
+in [auth PR #60](https://github.com/lambdawalker/android.apexfission.auth/pull/60);
+the owning backend contract is in
+[capture PR #45](https://github.com/lambdawalker/go.appexfission.aws.card-capture/pull/45).
+The root runtime, infrastructure and deploy-tool manifests pin the same feature
+revision. Deploy this host revision before using Android's new review fields;
+older strict servers reject unknown keys. This source change does not deploy AWS.
