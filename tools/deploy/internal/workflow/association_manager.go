@@ -10,7 +10,6 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/lambdawalker/go.apexfission.aws.auth/assetlinks"
-	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
 )
 
 func removeAssociation(apps []assetlinks.Application, pkg, fingerprint string) []assetlinks.Application {
@@ -98,21 +97,27 @@ func manageAssociations(r commandRunner, o options) error {
 				}
 			}
 		case "add":
-			home, _ := os.UserHomeDir()
-			path := filepath.Join(home, ".attestra", "associations", o.Stack, "developer-associations.json")
-			if err := ui.Input("Public association JSON file", &path, false, true).Run(); err != nil {
+			home, err := os.UserHomeDir()
+			if err != nil {
 				return err
 			}
-			data, err := os.ReadFile(path)
+			paths, discoveryErr := discoverAssociationFiles(home)
+			if discoveryErr != nil {
+				fmt.Printf("Could not search local Android exports: %v. Enter a public JSON path manually.\n", discoveryErr)
+			}
+			path, err := chooseAssociationFile(home, o.Stack, paths)
 			if err != nil {
-				fmt.Println("Cannot read file:", err)
+				return err
+			}
+			if path == "" {
 				continue
 			}
-			var incoming []assetlinks.Application
-			if json.Unmarshal(data, &incoming) != nil {
-				fmt.Println("Invalid association JSON")
+			incoming, err := readAssociationFile(path)
+			if err != nil {
+				fmt.Println("Cannot read public association file:", err)
 				continue
 			}
+			showAssociationFile(path, o.Stack, incoming)
 			merged, changed, err := mergeAssociations(apps, incoming)
 			if err != nil {
 				fmt.Println("Cannot add:", err)

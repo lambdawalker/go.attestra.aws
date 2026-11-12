@@ -14,6 +14,17 @@ go -C tools/deploy run . -manage-credentials
 
 The launchers supply the repository path explicitly. Direct commands retain the existing `-repo-root` option and default. `main.go` only calls the workflow entry point and handles process exit. GitHub Actions uses the same executable.
 
+## Android signing imports
+
+Setup and `./deploy.sh -associations` (`deploy.bat -associations` on Windows)
+discover the Android CLI's public `*.associations.json` exports under
+`~/.projects/<android-repo-name>/secrets/`. Select one repository/signing export
+for the intended backend environment, review its identities, and approve them.
+Imports preserve existing approvals. Custom locations remain available through
+manual path entry; the association manager stages edits until Publish.
+See [Android signing associations](../../docs/android-associations.md) for
+export generation, first-time hosting, and the full import flow.
+
 ## All-environment nuke
 
 From the repository root use `deploy.bat -teardown -nuke` or `./deploy.sh -teardown -nuke`. This delegates orchestration to Composer's `teardown.Engine`; the application adapter supplies account-bound environment discovery and the cleanup that lives outside Pulumi. No environment target picker is used. An optional vault prompt selects credentials only, not deletion scope. Administrator login and typed repository/account confirmation are required before destruction.
