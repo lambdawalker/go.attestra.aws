@@ -5,8 +5,8 @@ go 1.27.3
 require (
 	github.com/lambdawalker/go.apexfission.aws.auth v0.0.0-20261107054140-3c536bf9cbd8
 	github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261107054140-3c536bf9cbd8
-	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4
-	github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261103183508-9f175d1d1aa4
+	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261114191930-13cbf3daf2c1
+	github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261114191930-13cbf3daf2c1
 	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261112175402-aa6afcf54121
 	github.com/lambdawalker/go.appexfission.aws.card-capture/infrastructure v0.0.0-20261112043905-3974be865ed3
 	github.com/lambdawalker/go.attestra.aws v0.0.0-20261101213259-8f0f2848ad3d
