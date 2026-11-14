@@ -1,4 +1,5 @@
 name: Resolve verify-email module sums
+# refresh sums
 on:
   push:
     branches:
