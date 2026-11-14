@@ -156,6 +156,10 @@ github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-2026110705
 github.com/lambdawalker/go.apexfission.aws.auth/infrastructure v0.0.0-20261107054140-3c536bf9cbd8/go.mod h1:NP5vrE3r9ibIaAHkKyCt6o3smZghX3n/AQGroOlxRpU=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4 h1:iOP1m3Apn0rtaX+r/SXuSB6t3VV5emHajMVfVQlclg4=
 github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
+github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261114191930-13cbf3daf2c1/go.mod h1:icRyMAjL/Jo+ozUA4FMxwrRpCsMoOX2QG1Ob6rVKH2U=
+github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261114191930-13cbf3daf2c1 h1:/EqXOLxg6kq28JKk/VbonV7lfdoXWiVlaFdrQrIVrlQ=
+github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261114191930-13cbf3daf2c1/go.mod h1:rRZ615iaPzWl+71xxsTKFXy3FDcD8JgpPNaTJFqNxTA=
+github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261114191930-13cbf3daf2c1 h1:7TBhj/EzJawskK1VPIWfKhZ+3DpntGJp/N+kxNG7pMk=
 github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261103183508-9f175d1d1aa4 h1:ni1bTlZAO9NJhTbAmBHnc6gVMuXl8HZI1/nZavNwdEE=
 github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure v0.0.0-20261103183508-9f175d1d1aa4/go.mod h1:wc+HSLF1ZbxS8xDDCrXslQe6Ju8quExmM1Ao4oSlcW0=
 github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261107064211-13e8bcc291da h1:iusQB69265dMDzYq9ebK5fpmpuMK/k8F5braFQcC6Qc=
