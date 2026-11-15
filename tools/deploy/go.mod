@@ -22,7 +22,7 @@ require (
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261103183508-9f175d1d1aa4 // indirect
+	github.com/lambdawalker/go.apexfission.aws.verifyemail v0.0.0-20261115061044-1963f90999f5 // indirect
 	github.com/lambdawalker/go.appexfission.aws.card-capture v0.0.0-20261112175402-aa6afcf54121 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
