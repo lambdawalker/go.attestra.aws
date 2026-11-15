@@ -1,0 +1,38 @@
+name: Align composed backend Go modules (temporary)
+on:
+  push:
+    branches:
+      - feat/email-code-proof-dependency-20261114
+permissions:
+  contents: write
+jobs:
+  tidy:
+    if: github.ref == 'refs/heads/feat/email-code-proof-dependency-20261114'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Update all module dependency graphs
+        run: |
+          go mod tidy
+          (cd infra && go get github.com/lambdawalker/go.apexfission.aws.verifyemail@1963f90999f574824951a8b579b1bfb7047ef0ea github.com/lambdawalker/go.apexfission.aws.verifyemail/infrastructure@1963f90999f574824951a8b579b1bfb7047ef0ea && go mod tidy)
+          (cd infra-index && go mod tidy)
+          (cd tools/deploy && go get github.com/lambdawalker/go.apexfission.aws.verifyemail@1963f90999f574824951a8b579b1bfb7047ef0ea && go mod tidy)
+          go mod verify
+          (cd infra && go mod verify)
+          (cd infra-index && go mod verify)
+          (cd tools/deploy && go mod verify)
+          go test ./...
+      - name: Commit all updated module graphs
+        run: |
+          git add go.mod go.sum infra/go.mod infra/go.sum infra-index/go.mod infra-index/go.sum tools/deploy/go.mod tools/deploy/go.sum
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Align all composed Go module pins after verification upgrade"
+            git push origin HEAD:feat/email-code-proof-dependency-20261114
+          fi
