@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"encoding/json"
 	"errors"
 	"reflect"
 	"strings"
@@ -43,7 +44,7 @@ func TestDeploymentStopsAtEveryFailure(t *testing.T) {
 	if err := execute(good, testOptions()); err != nil {
 		t.Fatal(err)
 	}
-	if len(good.calls) != 6 || good.calls[4] != "pulumi preview --stack dev" || good.calls[5] != "pulumi up --stack dev" {
+	if len(good.calls) != 7 || good.calls[5] != "pulumi preview --stack dev" || good.calls[6] != "pulumi up --stack dev" {
 		t.Fatal(good.calls)
 	}
 	for i := 1; i <= len(good.calls); i++ {
@@ -90,13 +91,13 @@ func TestStackGuards(t *testing.T) {
 	} {
 		r := goodRunner()
 		r.config = config
-		if execute(r, testOptions()) == nil || len(r.calls) != 3 {
+		if execute(r, testOptions()) == nil || len(r.calls) != 4 {
 			t.Fatal(r.calls)
 		}
 	}
 	r := goodRunner()
 	r.state = `{"deployment":{"secrets_providers":{"type":"service"}}}`
-	if execute(r, testOptions()) == nil || len(r.calls) != 2 {
+	if execute(r, testOptions()) == nil || len(r.calls) != 3 {
 		t.Fatal("accepted Cloud encryption")
 	}
 }
@@ -160,6 +161,15 @@ func (r *bucketRunner) Exec(_ string, _ bool, _ string, args ...string) ([]byte,
 	if r.calls == r.fail {
 		return nil, errors.New("access denied")
 	}
+	switch args[1] {
+	case "get-bucket-location":
+		return []byte(`{"LocationConstraint":"us-east-2"}`), nil
+	case "get-bucket-encryption":
+		return []byte(`{"ServerSideEncryptionConfiguration":{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}}`), nil
+	case "get-bucket-policy":
+		b, _ := json.Marshal(map[string]string{"Policy": tlsStatePolicy("attestra-state")})
+		return b, nil
+	}
 	if args[1] == "get-bucket-versioning" {
 		return []byte(r.version), nil
 	}
@@ -175,7 +185,7 @@ func TestBucketGuards(t *testing.T) {
 	if err := checkBucket(good(), testOptions(), "123456789012"); err != nil {
 		t.Fatal(err)
 	}
-	for i := 1; i <= 3; i++ {
+	for i := 1; i <= 6; i++ {
 		r := good()
 		r.fail = i
 		err := checkBucket(r, testOptions(), "123456789012")

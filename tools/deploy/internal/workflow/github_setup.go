@@ -38,10 +38,10 @@ func validateSetupValues(v map[string]string) error {
 	}
 	return (options{Backend: v["PULUMI_BACKEND_URL"], Stack: v["PULUMI_STACK"], Region: v["AWS_REGION"]}).validate()
 }
-func runGitHubSetup(root string, full, force, freshCredentials bool) (resultErr error) {
+func runGitHubSetup(root string, full, force, freshCredentials, allowDeploy bool) (resultErr error) {
 	var bootstrap *bootstrapWizard
 	if full {
-		bootstrap = &bootstrapWizard{root: root, forceSetup: force}
+		bootstrap = &bootstrapWizard{setupOnly: !allowDeploy, root: root, forceSetup: force}
 		defer bootstrap.cleanup()
 		defer func() {
 			if bootstrap.r != nil && bootstrap.r.reportActive != nil {
@@ -58,8 +58,15 @@ func runGitHubSetup(root string, full, force, freshCredentials bool) (resultErr 
 	if full {
 		fmt.Println("Full bootstrap: state bucket → stack and secrets → IAM/GitHub → deploy and SES DNS guidance. Existing resources are preserved.")
 	}
-	environment, err := ui.ChooseEnvironment(localEnvironments(root))
+	selection, err := readSelection(root)
 	if err != nil {
+		return err
+	}
+	environment, err := ui.ChooseEnvironmentDefault(localEnvironments(root), "Environment to set up", selection.Environment)
+	if err != nil {
+		return err
+	}
+	if err := saveSelectionEnvironment(root, environment); err != nil {
 		return err
 	}
 	repo := localRepository(root)
@@ -224,7 +231,12 @@ func runGitHubSetup(root string, full, force, freshCredentials bool) (resultErr 
 			return err
 		}
 	}
-	saved, err := client.SaveEnvironment(repo, environment, previous, values, passphrase)
+	secretToWrite := passphrase
+	if previous.SecretExists && !freshCredentials {
+		secretToWrite = ""
+		fmt.Println("Existing GitHub passphrase secret retained; its value cannot be read or verified. Use explicit credential replacement to rotate it.")
+	}
+	saved, err := client.SaveEnvironment(repo, environment, previous, values, secretToWrite)
 	if err != nil {
 		if len(saved) > 0 {
 			fmt.Println("Already saved:", strings.Join(saved, ", "))

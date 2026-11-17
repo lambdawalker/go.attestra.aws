@@ -9,13 +9,14 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/charmbracelet/huh"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
 )
 
 // Deployment preferences contain only explicitly allowlisted non-secret values.
 // Keep these separate from bootstrap progress: deploying must not mark setup done.
 type deploySettings struct {
+	Version    int
+	Account    string
 	Repository string
 	Stack      string
 	Backend    string
@@ -29,7 +30,7 @@ func readDeploySettings(root, stack, repo string) (deploySettings, error) {
 		return deploySettings{}, errors.New("use a simple environment/stack name")
 	}
 	var result deploySettings
-	path := filepath.Join(root, ".attestra", "deploy."+stack+".local.json")
+	path := filepath.Join(stateDirectory(root), "deploy."+stack+".local.json")
 	data, err := os.ReadFile(path)
 	if err == nil {
 		if err := json.Unmarshal(data, &result); err != nil {
@@ -48,7 +49,10 @@ func readDeploySettings(root, stack, repo string) (deploySettings, error) {
 		if !checkpoint.belongsTo(repo, stack) {
 			return deploySettings{}, errors.New("saved bootstrap checkpoint belongs to a different repository or environment; inspect the local settings before continuing")
 		}
-		result = deploySettings{Repository: checkpoint.Repository, Stack: checkpoint.Stack, Backend: checkpoint.Backend, Region: checkpoint.Region, AuthMode: checkpoint.Settings["authMode"], Profile: checkpoint.Settings["profile"]}
+		result = deploySettings{Account: checkpoint.Account, Repository: checkpoint.Repository, Stack: checkpoint.Stack, Backend: checkpoint.Backend, Region: checkpoint.Region, AuthMode: checkpoint.Settings["authMode"], Profile: checkpoint.Settings["profile"]}
+	}
+	if result.Version < 0 || result.Version > 1 {
+		return deploySettings{}, errors.New("unsupported deployment settings schema; recover compatible records")
 	}
 	switch result.AuthMode {
 	case "", "sso", "login", "keys":
@@ -84,31 +88,18 @@ func saveDeploySettings(o options, repo string) error {
 	if o.Sso {
 		mode = "sso"
 	}
-	data, err := json.MarshalIndent(deploySettings{Repository: repo, Stack: o.Stack, Backend: o.Backend, Region: o.Region, AuthMode: mode, Profile: o.Profile}, "", "  ")
-	if err != nil {
+	value := deploySettings{Version: 1, Account: o.ExpectedAccount, Repository: repo, Stack: o.Stack, Backend: o.Backend, Region: o.Region, AuthMode: mode, Profile: o.Profile}
+	if err := atomicPrivateJSON(filepath.Join(stateDirectory(o.Root), "deploy."+o.Stack+".local.json"), value); err != nil {
 		return err
 	}
-	dir := filepath.Join(o.Root, ".attestra")
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return err
-	}
-	file, err := os.CreateTemp(dir, "deploy-settings-*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(file.Name())
-	if _, err := file.Write(append(data, '\n')); err != nil {
-		file.Close()
-		return err
-	}
-	if err := file.Close(); err != nil {
-		return err
-	}
-	return os.Rename(file.Name(), filepath.Join(dir, "deploy."+o.Stack+".local.json"))
+	return atomicPrivateJSON(filepath.Join(o.Root, ".deploy", "deploy."+o.Stack+".local.json"), value)
 }
 
 func configureLocalDeploy(o *options, explicit map[string]bool) (*bootstrapWizard, error) {
 	if !explicit["stack"] {
+		if selection, e := readSelection(o.Root); e == nil && selection.Environment != "" {
+			o.Stack = selection.Environment
+		}
 		if err := ui.Input("Environment / stack", &o.Stack, false, true).Run(); err != nil {
 			return nil, err
 		}
@@ -120,9 +111,18 @@ func configureLocalDeploy(o *options, explicit map[string]bool) (*bootstrapWizar
 	if repo == "" {
 		return nil, errors.New("cannot determine repository for saved settings and vault; configure a GitHub origin remote")
 	}
+	if err := saveSelectionEnvironment(o.Root, o.Stack); err != nil {
+		return nil, err
+	}
 	settings, err := readDeploySettings(o.Root, o.Stack, repo)
 	if err != nil {
 		return nil, err
+	}
+	if settings.Region != "" && explicit["region"] && o.Region != settings.Region {
+		return nil, errors.New("explicit region differs from saved target; deliberately reconfigure before continuing")
+	}
+	if settings.Backend != "" && explicit["backend"] && o.Backend != settings.Backend {
+		return nil, errors.New("explicit backend differs from saved target; restore/migrate existing state deliberately")
 	}
 	applyDeploySettings(o, settings, explicit)
 	if o.Backend == "" {
@@ -137,7 +137,7 @@ func configureLocalDeploy(o *options, explicit map[string]bool) (*bootstrapWizar
 	}
 	if !explicit["login"] && !explicit["sso"] && settings.AuthMode == "" {
 		mode := "sso"
-		if err := huh.NewSelect[string]().Title("AWS authentication").Options(huh.NewOption("SSO", "sso"), huh.NewOption("AWS browser login", "login"), huh.NewOption("Access key credentials", "keys")).Value(&mode).Run(); err != nil {
+		if err := ui.Choice("AWS authentication", &mode, "sso", "login", "keys"); err != nil {
 			return nil, err
 		}
 		o.Sso, o.Login = mode == "sso", mode == "login"
@@ -152,6 +152,7 @@ func configureLocalDeploy(o *options, explicit map[string]bool) (*bootstrapWizar
 	}
 	fmt.Printf("Using stack %s • region %s • state %s\n", o.Stack, o.Region, o.Backend)
 	w := &bootstrapWizard{root: o.Root, environment: o.Stack}
+	w.memory.Account = settings.Account
 	// Reuse the exact repository/environment vault used by setup. Do not load DNS
 	// selections here: deploying does not need to request Cloudflare/GitHub tokens.
 	if err := w.loadCredentialsPrompt(repo, false, false); err != nil {

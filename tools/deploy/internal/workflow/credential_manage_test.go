@@ -8,7 +8,7 @@ import (
 
 func TestVaultManagementUsesSetupRepository(t *testing.T) {
 	root := stateTestDir(t)
-	if err := os.WriteFile(filepath.Join(root, ".attestra", "bootstrap.qa.local.json"), []byte(`{"Repository":"different/fork"}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(stateDirectory(root), "bootstrap.qa.local.json"), []byte(`{"Repository":"different/fork"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if got := credentialRepository(root, "qa", "origin/repo"); got != "different/fork" {

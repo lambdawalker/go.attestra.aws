@@ -70,7 +70,7 @@ func TestSavedNukeProjectsUseApplicationScopeAndDoNotRequireLiveDiscovery(t *tes
 
 func TestActiveNukeBlocksOtherLocalOperatorFlows(t *testing.T) {
 	root := t.TempDir()
-	dir := filepath.Join(root, ".attestra")
+	dir := stateDirectory(root)
 	os.MkdirAll(dir, 0700)
 	if err := ensureNoActiveComposerNuke(root); err != nil {
 		t.Fatal(err)

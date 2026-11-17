@@ -168,7 +168,7 @@ func TestIndexTeardownPendingBlocksSetupAndDenialIsNotAbsence(t *testing.T) {
 func TestIndexTeardownArchivesCompletedLifecycle(t *testing.T) {
 	root := stateTestDir(t)
 	p := teardownProgress{Complete: true, Values: map[string]string{"account": "123456789012", "region": "us-east-2"}}
-	path := filepath.Join(root, ".attestra", "teardown-index.123456789012.us-east-2.local.json")
+	path := filepath.Join(stateDirectory(root), "teardown-index.123456789012.us-east-2.local.json")
 	if err := p.save(path); err != nil {
 		t.Fatal(err)
 	}

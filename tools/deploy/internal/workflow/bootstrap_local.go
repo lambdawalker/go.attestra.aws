@@ -56,8 +56,13 @@ func localRepository(root string) string {
 }
 func localEnvironments(root string) []string {
 	var names []string
-	for _, pattern := range []string{".attestra/bootstrap.*.local.json*", "infra/Pulumi.*.yaml"} {
-		paths, _ := filepath.Glob(filepath.Join(root, pattern))
+	for _, pattern := range []string{".deploy/bootstrap.*.local.json*", "infra/Pulumi.*.yaml"} {
+		base := root
+		if strings.HasPrefix(pattern, ".deploy/") {
+			base = stateDirectory(root)
+			pattern = strings.TrimPrefix(pattern, ".deploy/")
+		}
+		paths, _ := filepath.Glob(filepath.Join(base, pattern))
 		for _, path := range paths {
 			name := filepath.Base(path)
 			if strings.HasPrefix(name, "bootstrap.") {
@@ -83,6 +88,7 @@ func (w *bootstrapWizard) configurationDigest() string {
 func (w *bootstrapWizard) checkpointDigest() string {
 	saved := w.memory
 	saved.Completion = nil
+	saved.Version = 1
 	data, _ := json.Marshal(saved)
 	return fmt.Sprintf("%x", sha256.Sum256(data))
 }
@@ -104,7 +110,7 @@ func (w *bootstrapWizard) locallyComplete(repo string, revision localRevision, f
 		}
 	}
 	// A local teardown plan, including an interrupted teardown, invalidates assumptions.
-	plans, err := filepath.Glob(filepath.Join(w.root, ".attestra", "teardown."+w.environment+".local.json*"))
+	plans, err := filepath.Glob(filepath.Join(stateDirectory(w.root), "teardown."+w.environment+".local.json*"))
 	if err != nil || len(plans) != 0 {
 		return false
 	}
@@ -126,8 +132,8 @@ func (w *bootstrapWizard) checkLocalSetup(repo string, force bool, approve func(
 		return false, nil
 	}
 	fmt.Printf("✓ %s is all set according to the local setup record.\nCommit: %s\nCompleted: %s\n", w.environment, revision.Commit, w.memory.Completion.CompletedAt)
-	fmt.Println("No AWS, GitHub, or Cloudflare checks were made. Changes made outside this checkout are not detected. Run setup with -force-setup to check and reconcile remote configuration.")
-	return true, nil
+	fmt.Println("Local completion is recorded evidence only; continuing authenticated reconciliation to detect remote drift.")
+	return false, nil
 }
 func (w *bootstrapWizard) recordCompletion(before localRevision, configuration string) error {
 	w.memory.StackInitialized = true

@@ -29,7 +29,7 @@ func TestSESPrerequisiteTargets(t *testing.T) {
 		if !strings.Contains(r.calls[len(r.calls)-1], "--yes --non-interactive") {
 			t.Fatal("deployment still prompts", r.calls)
 		}
-		for _, call := range r.calls[4:] {
+		for _, call := range r.calls[5:] {
 			if strings.Contains(call, "--target-dependents") {
 				t.Fatal(call)
 			}

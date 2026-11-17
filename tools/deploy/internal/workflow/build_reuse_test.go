@@ -35,15 +35,12 @@ func TestReuseBuildRequiresAllArchivesAndSkipsCompile(t *testing.T) {
 		}
 	}
 	r = goodRunner()
-	if err := execute(r, o); err != nil {
-		t.Fatal(err)
+	if execute(r, o) == nil {
+		t.Fatal("unverified archives without an integrity manifest were reused")
 	}
 	for _, call := range r.calls {
-		if strings.HasPrefix(call, "go ") {
-			t.Fatal("rebuilt", call)
+		if strings.HasPrefix(call, "pulumi preview") || strings.HasPrefix(call, "pulumi up") {
+			t.Fatal("unverified artifacts reached preview/apply")
 		}
-	}
-	if !strings.HasPrefix(r.calls[len(r.calls)-1], "pulumi up") {
-		t.Fatal(r.calls)
 	}
 }

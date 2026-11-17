@@ -9,7 +9,7 @@ import (
 )
 
 func TestSharedScopeFlags(t *testing.T) {
-	for _, name := range []string{"stack", "backend", "ci", "bootstrap", "build", "publish-index", "release-index-lock", "teardown", "health-check"} {
+	for _, name := range []string{"bootstrap", "build", "publish-index", "release-index-lock", "teardown", "health-check"} {
 		if validateDeployScope("shared", []string{name}) == nil {
 			t.Fatalf("accepted %s", name)
 		}

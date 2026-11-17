@@ -104,7 +104,7 @@ func runIndexTeardown(root string) error {
 	if err = checkBucket(r, o, identity.Account); err != nil {
 		return err
 	}
-	path := filepath.Join(root, ".attestra", "teardown-index."+identity.Account+"."+o.Region+".local.json")
+	path := filepath.Join(stateDirectory(root), "teardown-index."+identity.Account+"."+o.Region+".local.json")
 	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("index teardown is locked; inspect %s.lock before retrying", path)
@@ -302,7 +302,7 @@ func runIndexTeardown(root string) error {
 	if exists {
 		yaml := filepath.Join(dir, "Pulumi.shared.yaml")
 		if b, e := os.ReadFile(yaml); e == nil {
-			if err = os.WriteFile(filepath.Join(root, ".attestra", "index-config."+identity.Account+"."+o.Region+".yaml.bak"), b, 0600); err != nil {
+			if err = os.WriteFile(filepath.Join(stateDirectory(root), "index-config."+identity.Account+"."+o.Region+".yaml.bak"), b, 0600); err != nil {
 				return err
 			}
 		} else if !os.IsNotExist(e) {
@@ -387,7 +387,7 @@ func checkIndexTeardownPending(a awsenv.API, bucket, account string) error {
 }
 
 func archiveCompletedIndexTeardown(root, account, region string) error {
-	path := filepath.Join(root, ".attestra", "teardown-index."+account+"."+region+".local.json")
+	path := filepath.Join(stateDirectory(root), "teardown-index."+account+"."+region+".local.json")
 	for _, suffix := range []string{".bak", ".tmp", ".lock"} {
 		if _, err := os.Stat(path + suffix); !os.IsNotExist(err) {
 			return fmt.Errorf("inspect interrupted index teardown file before setup: %s", path+suffix)
@@ -407,7 +407,7 @@ func archiveCompletedIndexTeardown(root, account, region string) error {
 	if !p.Complete {
 		return errors.New("finish shared index teardown before setup")
 	}
-	history := filepath.Join(root, ".attestra", "teardown-history")
+	history := filepath.Join(stateDirectory(root), "teardown-history")
 	if err = os.MkdirAll(history, 0700); err != nil {
 		return err
 	}

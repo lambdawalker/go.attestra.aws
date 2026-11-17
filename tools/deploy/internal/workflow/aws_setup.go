@@ -340,8 +340,12 @@ func setupAWSRole(g *github.Client, repo, environment string, metadata repositor
 			return err
 		}
 	}
-	fmt.Printf("AWS account: %s\nIdentity: %s\n", id.Account, id.Arn)
+	fmt.Printf("AWS account: %s\nIdentity: %s\nRegion: %s\nEnvironment: %s\nStack: %s\nState: %s\n", id.Account, id.Arn, o.Region, environment, o.Stack, o.Backend)
+	if err := ui.Continue("Use this AWS identity and state location?"); err != nil {
+		return err
+	}
 	if bootstrap != nil {
+		bootstrap.roleIdentity = roleIdentity(id.Arn)
 		if err = bootstrap.prepare(a, c, o, id.Account); err != nil {
 			return err
 		}
@@ -477,10 +481,8 @@ func setupAWSRole(g *github.Client, repo, environment string, metadata repositor
 	for _, n := range sortedPolicyNames(policies) {
 		fmt.Printf("\n%s:\n%s\n", n, policyJSON(policies[n]))
 	}
-	if bootstrap == nil {
-		if err = ui.Continue("Apply these AWS IAM changes in account " + id.Account + "?"); err != nil {
-			return err
-		}
+	if err = ui.Confirm("Apply these AWS IAM changes in account " + id.Account + "?"); err != nil {
+		return err
 	}
 	if bootstrap != nil {
 		origin, parseErr := url.Parse(bootstrap.memory.Summary.Domains["App"])

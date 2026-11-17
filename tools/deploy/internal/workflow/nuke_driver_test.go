@@ -64,11 +64,11 @@ func nukeEmptyGitHub(t *testing.T) *github.Client {
 }
 func TestComposerNukeDiscoveryUsesCurrentProjectsWithoutInventedDev(t *testing.T) {
 	root := t.TempDir()
-	if e := os.Mkdir(filepath.Join(root, ".attestra"), 0700); e != nil {
+	if e := os.Mkdir(stateDirectory(root), 0700); e != nil {
 		t.Fatal(e)
 	}
 	record := `{"Repository":"owner/repo","Environment":"qa","Account":"123456789012","Backend":"s3://attestra-state-test","Region":"us-east-2"}`
-	if e := os.WriteFile(filepath.Join(root, ".attestra", "bootstrap.qa.local.json"), []byte(record), 0600); e != nil {
+	if e := os.WriteFile(filepath.Join(stateDirectory(root), "bootstrap.qa.local.json"), []byte(record), 0600); e != nil {
 		t.Fatal(e)
 	}
 	d, e := collectNukeDiscovery(root, "owner/repo", "123456789012", nukeEmptyGitHub(t), nukeReadOnlyAWS(t))
@@ -92,8 +92,8 @@ func TestComposerNukeDiscoveryUsesCurrentProjectsWithoutInventedDev(t *testing.T
 func TestComposerNukeDiscoveryRejectsMalformedSourceAndAccountChange(t *testing.T) {
 	for _, record := range []string{`{`, `{"Repository":"owner/repo","Account":"999999999999","Backend":"s3://state","Region":"us-east-2"}`} {
 		root := t.TempDir()
-		_ = os.Mkdir(filepath.Join(root, ".attestra"), 0700)
-		_ = os.WriteFile(filepath.Join(root, ".attestra", "bootstrap.qa.local.json"), []byte(record), 0600)
+		_ = os.Mkdir(stateDirectory(root), 0700)
+		_ = os.WriteFile(filepath.Join(stateDirectory(root), "bootstrap.qa.local.json"), []byte(record), 0600)
 		if _, e := collectNukeDiscovery(root, "owner/repo", "123456789012", nukeEmptyGitHub(t), nukeReadOnlyAWS(t)); e == nil {
 			t.Fatal("unsafe local record accepted")
 		}

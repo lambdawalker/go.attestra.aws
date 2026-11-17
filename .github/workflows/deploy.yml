@@ -1,14 +1,26 @@
 name: "Deploy AWS [Pulumi S3]"
-run-name: "${{ inputs.operation }} AWS • ${{ inputs.environment }}"
+run-name: "${{ inputs.operation }} AWS • ${{ inputs.component }} • ${{ inputs.environment }}"
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: Environment configured by setup
+      component:
+        description: Component scope; All deploys shared once then the selected backend only
         required: true
+        type: choice
+        default: Backend
+        options:
+          - Admin/index
+          - Backend
+          - All
+      admin_environment:
+        description: Protected environment for Admin/index or All (unused for Backend)
+        required: false
         type: environment
-        default: dev
+      environment:
+        description: Backend environment for Backend or All (unused for Admin/index)
+        required: false
+        type: environment
       operation:
         description: Preview, deploy, or retry index publication
         required: true
@@ -28,15 +40,157 @@ permissions:
 
 # Serialize operations for each environment, including previews. Never cancel an update.
 concurrency:
-  group: attestra-application-${{ inputs.environment }}-deployment
+  group: attestra-orchestration-${{ inputs.component }}-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
+  route:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate explicit component targets
+        env:
+          COMPONENT: ${{ inputs.component }}
+          BACKEND_ENVIRONMENT: ${{ inputs.environment }}
+          ADMIN_ENVIRONMENT: ${{ inputs.admin_environment }}
+          OPERATION: ${{ inputs.operation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$COMPONENT" == 'Admin/index' || "$COMPONENT" == Backend || "$COMPONENT" == All ]]
+          if [[ "$COMPONENT" != 'Admin/index' ]]; then
+            [[ "$BACKEND_ENVIRONMENT" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ && ${#BACKEND_ENVIRONMENT} -le 32 ]]
+          fi
+          if [[ "$COMPONENT" != Backend ]]; then
+            [[ -n "$ADMIN_ENVIRONMENT" && "$OPERATION" != publish ]]
+            [[ "$ADMIN_ENVIRONMENT" != "$BACKEND_ENVIRONMENT" ]]
+          fi
+  shared:
+    needs: route
+    if: github.ref == 'refs/heads/main' && inputs.component != 'Backend'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.admin_environment }}
+    concurrency:
+      group: attestra-shared-control-plane
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      STATE_BACKEND: ${{ vars.PULUMI_BACKEND_URL }}
+      STACK_NAME: ${{ vars.PULUMI_STACK }}
+      DEPLOY_ENVIRONMENT: ${{ inputs.admin_environment }}
+      OPERATION: ${{ inputs.operation }}
+      RECEIPT_RUN_ID: ${{ inputs.receipt_run_id }}
+    steps:
+      - name: Locate scoped recovery records
+        shell: bash
+        run: echo "DEPLOY_RECORDS=$HOME/.infra-composer/attestra" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check shared settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in AWS_REGION AWS_ACCOUNT_ID AWS_ROLE_ARN STATE_BACKEND STACK_NAME; do
+            [[ -n "${!name}" ]] || { echo "::error::Missing $name in shared environment"; exit 1; }
+          done
+          [[ "$STACK_NAME" == shared ]]
+          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
+          [[ "$OPERATION" == preview || "$OPERATION" == deploy ]]
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: '1.27.3'
+          cache-dependency-path: |
+            go.sum
+            infra/go.sum
+            infra-index/go.sum
+            tools/deploy/go.sum
+      - name: Test and compile deployment tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Feature commands must resolve from a published module pin.
+          replacement=$(go list -m -f '{{if .Replace}}{{.Replace.Path}}{{end}}' github.com/lambdawalker/go.apexfission.aws.auth)
+          if [[ -n "$replacement" ]]; then
+            echo "::error::The authentication feature must use its pinned module, without a replacement."
+            exit 1
+          fi
+          go mod verify
+          go test ./...
+          go vet ./...
+          go -C infra test ./...
+          go -C infra vet ./...
+          go -C infra-index test ./...
+          go -C tools/deploy test ./...
+          go -C tools/deploy vet ./...
+          go -C tools/deploy build -o "$RUNNER_TEMP/attestra-deploy" .
+      - name: Install Pulumi CLI
+        uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6; install only
+        with:
+          pulumi-version: '3.264.0'
+      - name: Obtain temporary AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+          role-session-name: attestra-deploy-${{ github.run_id }}
+          role-duration-seconds: 3600
+          unset-current-credentials: true
+      - name: Build, preview, and optionally deploy
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/attestra-deploy" \
+            -repo-root "$GITHUB_WORKSPACE" \
+            -scope shared \
+            -project attestra \
+            -account "$AWS_ACCOUNT_ID" \
+            -approve \
+            -ci "$OPERATION" \
+            -backend "$STATE_BACKEND" \
+            -region "$AWS_REGION" \
+            -stack "$STACK_NAME"
+
+      - name: Retain safe shared binding for All
+        if: inputs.component == 'All'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: shared-binding-${{ github.run_id }}
+          path: .deploy/shared-binding.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Retain safe deployment reports
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: shared-deployment-reports-${{ inputs.admin_environment }}
+          path: deployment-reports/
+          if-no-files-found: ignore
+          retention-days: 90
+
   deploy:
-    if: github.ref == 'refs/heads/main'
+    needs: [route, shared]
+    if: >-
+      always() && needs.route.result == 'success' && github.ref == 'refs/heads/main' &&
+      inputs.component != 'Admin/index' &&
+      (needs.shared.result == 'success' || (inputs.component == 'Backend' && needs.shared.result == 'skipped'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: ${{ inputs.environment }}
+    concurrency:
+      group: attestra-backend-${{ inputs.environment }}
+      cancel-in-progress: false
     permissions:
       contents: read
       actions: read
@@ -48,9 +202,13 @@ jobs:
       STATE_BACKEND: ${{ vars.PULUMI_BACKEND_URL }}
       STACK_NAME: ${{ vars.PULUMI_STACK }}
       DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+      COMPONENT: ${{ inputs.component }}
       OPERATION: ${{ inputs.operation }}
       RECEIPT_RUN_ID: ${{ inputs.receipt_run_id }}
     steps:
+      - name: Locate scoped recovery records
+        shell: bash
+        run: echo "DEPLOY_RECORDS=$HOME/.infra-composer/attestra" >> "$GITHUB_ENV"
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
@@ -66,10 +224,6 @@ jobs:
           done
           if [[ ! "$DEPLOY_ENVIRONMENT" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ || ${#DEPLOY_ENVIRONMENT} -gt 32 || "$STACK_NAME" != "$DEPLOY_ENVIRONMENT" ]]; then
             echo "::error::Environment must be a lowercase DNS-safe name and PULUMI_STACK must match it. Run setup for the selected environment."
-            exit 1
-          fi
-          if [[ ! -f "infra/Pulumi.$STACK_NAME.yaml" ]]; then
-            echo "::error::Missing infra/Pulumi.$STACK_NAME.yaml. Run setup and commit the encrypted stack configuration to main."
             exit 1
           fi
           [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
@@ -115,12 +269,19 @@ jobs:
           role-session-name: attestra-deploy-${{ github.run_id }}
           role-duration-seconds: 3600
           unset-current-credentials: true
+      - name: Receive exact selected shared binding
+        if: inputs.component == 'All'
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: shared-binding-${{ github.run_id }}
+          path: .deploy/
+
       - name: Restore pending index publication
         if: inputs.operation == 'publish'
         uses: actions/download-artifact@v8.0.2
         with:
           name: index-recovery-${{ inputs.environment }}
-          path: ${{ github.workspace }}
+          path: ${{ env.DEPLOY_RECORDS }}
           github-token: ${{ github.token }}
           run-id: ${{ inputs.receipt_run_id }}
       - name: Build, preview, and optionally deploy
@@ -129,8 +290,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/attestra-deploy" \
+          binding_args=()
+          if [[ "$COMPONENT" == All ]]; then binding_args=(-require-shared-binding); fi
+          "$RUNNER_TEMP/attestra-deploy" "${binding_args[@]}" \
             -repo-root "$GITHUB_WORKSPACE" \
+            -project attestra \
+            -account "$AWS_ACCOUNT_ID" \
+            -approve \
             -ci "$OPERATION" \
             -backend "$STATE_BACKEND" \
             -region "$AWS_REGION" \
@@ -141,7 +307,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.2
         with:
           name: index-recovery-${{ inputs.environment }}
-          path: .attestra/index-publication.${{ inputs.environment }}.local.json
+          path: ${{ env.DEPLOY_RECORDS }}/index-publication.${{ inputs.environment }}.local.json
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 90

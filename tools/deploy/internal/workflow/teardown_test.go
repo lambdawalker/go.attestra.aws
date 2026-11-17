@@ -116,7 +116,7 @@ func TestTeardownCapturesEvidenceBeforeDestroy(t *testing.T) {
 	if len(p.Desired) != 4 || p.Bucket != "id-evidence-test" {
 		t.Fatal(p)
 	}
-	path := filepath.Join(stateTestDir(t), ".attestra", "teardown.qa.local.json")
+	path := filepath.Join(stateDirectory(stateTestDir(t)), "teardown.qa.local.json")
 	if err := p.save(path); err != nil {
 		t.Fatal(err)
 	}

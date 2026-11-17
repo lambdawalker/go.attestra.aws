@@ -10,7 +10,6 @@ import (
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
 	credentialvault "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/vault"
 
-	"github.com/charmbracelet/huh"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -20,7 +19,7 @@ func (w *bootstrapWizard) loadCredentials(repo string, fresh bool) error {
 
 func (w *bootstrapWizard) loadCredentialsPrompt(repo string, fresh, ask bool) error {
 	w.credentialRepo = repo
-	path, scope, err := credentialvault.Location(repo, w.environment)
+	path, scope, err := credentialLocation(w.root, repo, w.environment)
 	if err != nil {
 		return err
 	}
@@ -31,15 +30,6 @@ func (w *bootstrapWizard) loadCredentialsPrompt(repo string, fresh, ask bool) er
 		return nil
 	} else if err != nil {
 		return err
-	}
-	use := true
-	if ask {
-		if err := huh.NewConfirm().Title("Unlock saved credentials for " + w.environment + "?").Description("No uses credentials entered for this run. The encrypted vault stays unchanged unless you choose to replace it later.").Value(&use).Run(); err != nil {
-			return err
-		}
-	}
-	if !use {
-		return nil
 	}
 	phrase := ""
 	if err := ui.Input("Credential vault passphrase", &phrase, true, true).Run(); err != nil {
@@ -81,16 +71,7 @@ func (w *bootstrapWizard) saveCredentialsPrompt(ask bool) error {
 	if w.vault != nil {
 		return w.vault.Save(w.secrets)
 	}
-	save := !ask
-	if ask {
-		if err := huh.NewConfirm().Title("Save these credentials in an encrypted local vault?").Description("Includes GitHub, Cloudflare (if used), the application and shared index Pulumi passphrases, and manually entered AWS keys/session token. AWS expiry still applies. Default: do not save.").Value(&save).Run(); err != nil {
-			return err
-		}
-	}
-	if !save {
-		return nil
-	}
-	path, scope, err := credentialvault.Location(w.credentialRepo, w.environment)
+	path, scope, err := credentialLocation(w.root, w.credentialRepo, w.environment)
 	if err != nil {
 		return err
 	}
@@ -129,6 +110,6 @@ func (w *bootstrapWizard) saveCredentialsPrompt(ask bool) error {
 		return err
 	}
 	w.vault = vault
-	fmt.Println("✓ Encrypted credentials saved outside the repository:", path)
+	fmt.Println("✓ Encrypted credentials saved under ignored .deploy/:", path)
 	return nil
 }

@@ -14,3 +14,10 @@ type sharedStackOutputs struct {
 	AdminDomainTarget string `json:"adminDomainTarget"`
 	AdminURL          string `json:"adminUrl"`
 }
+
+// SharedBinding is an allowlisted handoff between host-owned deployment jobs.
+// Values are validated stack outputs, not a claim of fresh live resource probes.
+type SharedBinding struct {
+	Version                                                            int
+	Account, Region, RuntimeTableName, RuntimeTableARN, APIARN, APIURL string
+}

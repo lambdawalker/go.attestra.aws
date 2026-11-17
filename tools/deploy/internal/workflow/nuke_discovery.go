@@ -102,7 +102,7 @@ func collectNukeDiscovery(root, repo, account string, g *github.Client, api func
 		}
 		return nil
 	}
-	paths, err := filepath.Glob(filepath.Join(root, ".attestra", "*.local.json*"))
+	paths, err := filepath.Glob(filepath.Join(stateDirectory(root), "*.local.json*"))
 	if err != nil {
 		return d, errors.New("local discovery unavailable")
 	}

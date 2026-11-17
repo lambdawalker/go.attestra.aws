@@ -26,7 +26,8 @@ func Run() (resultErr error) {
 		return runCredentialProcess(os.Args[2])
 	}
 	var associations, timedConfirm bool
-	var scope string
+	var scope, project string
+	var migrateRecords, migrateVault, explicitDeploy bool
 	var reportFlags artifactReportFlags
 	flag.BoolVar(&reportFlags.Report, "report", false, "Render cached artifact reports without credentials or network")
 	flag.BoolVar(&reportFlags.Refresh, "refresh", false, "With -report: run fresh read-only provider checks")
@@ -35,8 +36,14 @@ func Run() (resultErr error) {
 	flag.StringVar(&reportFlags.Account, "account", "", "Filter artifact cache by AWS account")
 	flag.StringVar(&reportFlags.Feature, "feature", "", "Filter artifact report by canonical feature")
 	flag.StringVar(&scope, "scope", "app", "Deployment scope: app (backend), shared (index/admin), or both")
+	flag.BoolVar(&explicitDeploy, "deploy", false, "Explicit deploy intent; with -bootstrap, permit prerequisite/application applies after preview")
+	flag.StringVar(&project, "project", "", "Deployment project identity")
+	flag.BoolVar(&migrateVault, "migrate-vault", false, "Explicitly decrypt/re-encrypt the selected legacy vault into .deploy/; never deploy")
+	flag.BoolVar(&migrateRecords, "migrate-records", false, "Copy legacy local recovery records to scoped project records; never deploy")
 	var o options
 	var setupGitHub, bootstrap, build, teardown, forceSetup, freshCredentials, manageVault, teardownIndex, nuke, check, fastCheck bool
+	flag.BoolVar(&o.RequireSharedBinding, "require-shared-binding", false, "Validate backend against the explicit shared job output receipt")
+	flag.BoolVar(&o.Approved, "approve", false, "Explicit noninteractive approval for -ci deploy (never permits destructive plans)")
 	flag.BoolVar(&timedConfirm, "timed-confirm", false, "Continue routine deployment confirmations after 5 seconds unless cancelled")
 	flag.BoolVar(&associations, "associations", false, "Manage and publish Android signing approvals without a full deployment")
 	flag.StringVar(&o.ExportAndroid, "export-android", "", "Export deployed public Android settings to a properties file without deployment")
@@ -69,6 +76,8 @@ func Run() (resultErr error) {
 	}
 	var supplied []string
 	flag.Visit(func(f *flag.Flag) { supplied = append(supplied, f.Name) })
+	o.ExpectedAccount = reportFlags.Account
+	o.Scope = scope
 	reportFlags.Scope = scope
 	if err := validateArtifactFlags(reportFlags, supplied); err != nil {
 		return err
@@ -96,10 +105,10 @@ func Run() (resultErr error) {
 	if err := validateTimedConfirmationMode(timedConfirm, supplied); err != nil {
 		return err
 	}
-	restoreConfirmations := ui.SetTimedConfirmations(timedConfirm)
+	restoreConfirmations := ui.SetTimedConfirmations(interactiveDefaults(supplied))
 	defer restoreConfirmations()
-	if timedConfirm {
-		fmt.Println("Timed confirmations: routine approvals continue after 5 seconds unless cancelled.")
+	if interactiveDefaults(supplied) {
+		fmt.Println("Routine defaults continue in 5 seconds; Enter accepts, Escape/Ctrl+C cancels. Destructive approvals remain manual.")
 	}
 	if err := validateComposerNukeFlags(nuke, teardown, supplied); err != nil {
 		return err
@@ -127,9 +136,25 @@ func Run() (resultErr error) {
 		return err
 	}
 	if !build {
+		if err := establishProject(root, project, term.IsTerminal(os.Stdin.Fd()) && o.CI == ""); err != nil {
+			return err
+		}
+		if migrateRecords {
+			return migrateGeneratedState(root)
+		}
+		if migrateVault {
+			return migrateCredentialVault(root, o.Stack)
+		}
 		if err := prepareGeneratedState(root); err != nil {
 			return err
 		}
+	}
+	if !build {
+		release, err := acquireOperatorLock(root)
+		if err != nil {
+			return err
+		}
+		defer release()
 	}
 	if nuke {
 		return runComposerNuke(root, check || fastCheck, fastCheck)
@@ -141,19 +166,23 @@ func Run() (resultErr error) {
 	if repo == "" {
 		repo = "lambdawalker/go.attestra.aws"
 	}
-	choice, err := deploymentStartup(root, repo, supplied, chooseDeployment)
+	choice, err := deploymentStartup(root, repo, supplied, func() (string, error) { return chooseDeploymentFor(root) })
 	if err != nil {
 		return err
 	}
 	switch choice {
 	case "setup":
 		fmt.Println("Initial setup is not complete. Starting the full wizard for shared infrastructure and the backend (default: dev).")
-		return runGitHubSetup(root, true, false, false)
+		return runGitHubSetup(root, true, false, false, !bootstrap || explicitDeploy)
 	case "app", "shared", "both":
 		scope = choice
 		bootstrap = false
 	}
-	if scope == "shared" {
+	o.Scope = scope
+	if scope == "shared" && containsReportFlag(supplied, "stack") && o.Stack != "shared" {
+		return errors.New("Admin/index requires stack shared; backend environment selection is not applicable")
+	}
+	if scope == "shared" && o.CI == "" {
 		o.Root = root
 		return runSharedDeploy(o)
 	}
@@ -210,9 +239,12 @@ func Run() (resultErr error) {
 		if o.CI != "" {
 			return errors.New("GitHub setup cannot run in CI mode")
 		}
-		return runGitHubSetup(root, bootstrap, forceSetup || freshCredentials, freshCredentials)
+		return runGitHubSetup(root, bootstrap, forceSetup || freshCredentials, freshCredentials, explicitDeploy)
 	}
 	if o.CI != "" {
+		if err := requireCIInputs(supplied); err != nil {
+			return err
+		}
 		return runCI(o)
 	}
 	if !term.IsTerminal(os.Stdin.Fd()) {
@@ -291,7 +323,12 @@ func Run() (resultErr error) {
 	if err := json.Unmarshal(identity, &id); err != nil || id.Account == "" {
 		return errors.New("invalid AWS identity response")
 	}
+	if err := verifyDeployAccount(o, saved.memory.Account, id.Account); err != nil {
+		return err
+	}
+	o.ExpectedAccount = id.Account
 	runner.reportAccount = id.Account
+	runner.reportRole = roleIdentity(id.Arn)
 	if !associations && o.ExportAndroid == "" && !o.HealthCheck && o.MigrateFrom == "" && !o.PublishOnly && !o.ReleaseIndex {
 		a := beginArtifactAttempt(runner, runner, o.Root, filepath.Join(o.Root, "infra"), o.Stack, "deploy")
 		runner.reportActive = a
@@ -345,7 +382,12 @@ func Run() (resultErr error) {
 			}
 		}
 		return deploySharedWithCredentials(o, sharedCredentials, id.Account)
-	}, func() error { return execute(runner, o) }); err != nil {
+	}, func() error {
+		if scope == "both" {
+			o.RequireSharedBinding = true
+		}
+		return execute(runner, o)
+	}); err != nil {
 		return err
 	}
 	if o.MigrateFrom == "" && !o.ReleaseIndex {

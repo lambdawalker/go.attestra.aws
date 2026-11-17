@@ -10,7 +10,7 @@ func TestSetupArchivesCompletedTeardownForSelectedEnvironment(t *testing.T) {
 	root := stateTestDir(t)
 	for _, env := range []string{"dev", "qa"} {
 		p := teardownProgress{Repository: "owner/repo", Environment: env, Complete: true}
-		if err := p.save(filepath.Join(root, ".attestra", "teardown."+env+".local.json")); err != nil {
+		if err := p.save(filepath.Join(stateDirectory(root), "teardown."+env+".local.json")); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -34,7 +34,7 @@ func TestSetupArchivesCompletedTeardownForSelectedEnvironment(t *testing.T) {
 		t.Fatal("unrelated migration backup changed")
 	}
 
-	if _, err := os.Stat(filepath.Join(root, ".attestra", "teardown.dev.local.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(stateDirectory(root), "teardown.dev.local.json")); !os.IsNotExist(err) {
 		t.Fatal("old dev receipt remains active")
 	}
 	if _, err := os.Stat(backup); !os.IsNotExist(err) {
@@ -43,7 +43,7 @@ func TestSetupArchivesCompletedTeardownForSelectedEnvironment(t *testing.T) {
 	if complete, err := completedTeardown(root, "qa"); err != nil || !complete {
 		t.Fatal("QA receipt changed")
 	}
-	archives, _ := filepath.Glob(filepath.Join(root, ".attestra", "teardown-history", "dev-*", "teardown.dev.local.json"))
+	archives, _ := filepath.Glob(filepath.Join(stateDirectory(root), "teardown-history", "dev-*", "teardown.dev.local.json"))
 	if len(archives) != 1 {
 		t.Fatalf("archives: %v", archives)
 	}
@@ -68,7 +68,7 @@ func TestSetupPreservesIncompleteOrForeignTeardown(t *testing.T) {
 		{Repository: "owner/repo", Environment: "qa", Complete: true},
 	} {
 		root := stateTestDir(t)
-		path := filepath.Join(root, ".attestra", "teardown.dev.local.json")
+		path := filepath.Join(stateDirectory(root), "teardown.dev.local.json")
 		if err := p.save(path); err != nil {
 			t.Fatal(err)
 		}
@@ -89,7 +89,7 @@ func TestSetupPreservesIncompleteOrForeignTeardown(t *testing.T) {
 func TestSetupPreservesInterruptedTeardown(t *testing.T) {
 	for _, suffix := range []string{".bak", ".tmp"} {
 		root := stateTestDir(t)
-		path := filepath.Join(root, ".attestra", "teardown.dev.local.json")
+		path := filepath.Join(stateDirectory(root), "teardown.dev.local.json")
 		p := teardownProgress{Repository: "owner/repo", Environment: "dev", Complete: true}
 		if err := p.save(path); err != nil {
 			t.Fatal(err)

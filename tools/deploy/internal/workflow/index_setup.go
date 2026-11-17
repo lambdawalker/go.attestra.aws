@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/mail"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"sort"
@@ -54,34 +53,7 @@ func indexSourceHash(root string) (string, error) {
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
-func buildIndex(root string) error {
-	for _, name := range []string{"index", "admin"} {
-		if e := buildSharedLambda(root, name); e != nil {
-			return e
-		}
-	}
-	return nil
-}
-func buildSharedLambda(root, name string) error {
-	dir, e := os.MkdirTemp("", "attestra-shared-build-")
-	if e != nil {
-		return e
-	}
-	defer os.RemoveAll(dir)
-	binary := filepath.Join(dir, "bootstrap")
-	cmd := exec.Command("go", "build", "-trimpath", "-tags", "lambda.norpc", "-o", binary, "./cmd/"+name)
-	cmd.Dir = root
-	cmd.Env = append(awsenv.WithoutCredentials(os.Environ()), "GOOS=linux", "GOARCH=arm64", "CGO_ENABLED=0")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if e = cmd.Run(); e != nil {
-		return e
-	}
-	if e = os.MkdirAll(filepath.Join(root, "dist"), 0755); e != nil {
-		return e
-	}
-	return build.PackageLambda(binary, filepath.Join(root, "dist", name+".zip"))
-}
+func buildIndex(root string) error { return build.Shared(root) }
 
 func replaceEnvironment(env []string, values map[string]string) []string {
 	result := []string{}
@@ -150,7 +122,7 @@ func (w *bootstrapWizard) prepareIndex(base, zone string) (resultErr error) {
 			return e
 		}
 	}
-	r := &processRunner{reportAccount: w.account, reportGitHub: w.r.reportGitHub, reportDNS: w.r.reportDNS, onPreview: w.recordPreview, env: replaceEnvironment(w.r.env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL(), "PULUMI_CONFIG_PASSPHRASE": w.secrets.IndexPulumi})}
+	r := &processRunner{reportRole: w.r.reportRole, setupOnly: w.setupOnly, reportAccount: w.account, reportGitHub: w.r.reportGitHub, reportDNS: w.r.reportDNS, onPreview: w.recordPreview, env: replaceEnvironment(w.r.env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL(), "PULUMI_CONFIG_PASSPHRASE": w.secrets.IndexPulumi})}
 	dir := filepath.Join(w.root, "infra-index")
 	aReport := beginArtifactAttempt(r, r, w.root, dir, "shared", "deploy")
 	r.reportActive = aReport
@@ -315,7 +287,18 @@ func (w *bootstrapWizard) prepareIndex(base, zone string) (resultErr error) {
 			}
 		}
 	} else {
-		fmt.Println("✓ Shared index infrastructure already configured for this source version.")
+		fmt.Println("Shared source matches the recorded version; checking a fresh plan for drift.")
+		if e = buildIndex(w.root); e != nil {
+			return e
+		}
+		if _, e = run(false, "preview", "--stack", "shared", "--non-interactive"); e != nil {
+			return e
+		}
+		if !w.setupOnly {
+			if _, e = run(false, "up", "--stack", "shared", "--non-interactive", "--yes"); e != nil {
+				return e
+			}
+		}
 	}
 	outputs, e := run(true, "stack", "output", "--json", "--stack", "shared")
 	if e != nil {
