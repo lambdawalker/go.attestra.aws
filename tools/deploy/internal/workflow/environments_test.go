@@ -70,7 +70,7 @@ func TestCheckpointDoesNotCrossEnvironments(t *testing.T) {
 
 func TestLegacyCheckpointOnlyUsedForDev(t *testing.T) {
 	root := stateTestDir(t)
-	os.WriteFile(filepath.Join(root, ".attestra", "bootstrap.local.json"), []byte(`{"Repository":"owner/repo","Stack":"dev","Backend":"s3://legacy"}`), 0600)
+	os.WriteFile(filepath.Join(stateDirectory(root), "bootstrap.local.json"), []byte(`{"Repository":"owner/repo","Stack":"dev","Backend":"s3://legacy"}`), 0600)
 	for _, env := range []string{"dev", "qa"} {
 		w := bootstrapWizard{root: root, environment: env}
 		v := map[string]string{}

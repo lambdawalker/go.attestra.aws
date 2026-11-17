@@ -11,6 +11,7 @@ import (
 // Only non-secret selections are persisted, so interrupted bootstrap can reuse
 // its bucket before a GitHub environment exists. Never store a token/passphrase.
 type bootstrapCheckpoint struct {
+	Version          int
 	Summary          setupSummaryState `json:",omitempty"`
 	StackInitialized bool              `json:",omitempty"`
 	Completion       *setupCompletion  `json:",omitempty"`
@@ -34,7 +35,7 @@ func (w *bootstrapWizard) loadSelections(repo string, values map[string]string, 
 		return err
 	}
 	if !saved.belongsTo(repo, w.environment) {
-		return nil
+		return errors.New("saved setup record belongs to another repository/environment; inspect it before continuing")
 	}
 	// Preserve evidence from checkpoints written before StackInitialized existed.
 	switch saved.Stage {
@@ -63,6 +64,7 @@ func (w *bootstrapWizard) saveSelections(repo string, values map[string]string) 
 	return w.saveMemory()
 }
 func (w *bootstrapWizard) saveMemory() error {
+	w.memory.Version = 1
 	data, err := json.MarshalIndent(w.memory, "", "  ")
 	if err != nil {
 		return err
@@ -85,7 +87,7 @@ func (w *bootstrapWizard) saveMemory() error {
 		return err
 	}
 	_ = os.Remove(path + ".bak")
-	return nil
+	return atomicPrivateJSON(filepath.Join(w.root, ".deploy", "bootstrap."+w.environment+".local.json"), w.memory)
 }
 
 func (w *bootstrapWizard) checkpointPath() string {
@@ -93,14 +95,14 @@ func (w *bootstrapWizard) checkpointPath() string {
 }
 
 func bootstrapCheckpointPath(root, environment string) string {
-	return filepath.Join(root, ".attestra", "bootstrap."+environment+".local.json")
+	return filepath.Join(stateDirectory(root), "bootstrap."+environment+".local.json")
 }
 
 func readBootstrapCheckpoint(root, environment string) (bootstrapCheckpoint, error) {
 	path := bootstrapCheckpointPath(root, environment)
 	paths := []string{path, path + ".bak"}
 	if environment == "dev" {
-		legacy := filepath.Join(root, ".attestra", "bootstrap.local.json")
+		legacy := filepath.Join(stateDirectory(root), "bootstrap.local.json")
 		paths = append(paths, legacy, legacy+".bak")
 	}
 	var checkpoint bootstrapCheckpoint
@@ -114,6 +116,9 @@ func readBootstrapCheckpoint(root, environment string) (bootstrapCheckpoint, err
 		}
 		if err := json.Unmarshal(data, &checkpoint); err != nil {
 			return bootstrapCheckpoint{}, fmt.Errorf("invalid setup record %s; inspect it before continuing: %w", path, err)
+		}
+		if checkpoint.Version < 0 || checkpoint.Version > 1 {
+			return bootstrapCheckpoint{}, errors.New("unsupported setup record schema; recover compatible records")
 		}
 		return checkpoint, nil
 	}

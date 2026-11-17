@@ -12,6 +12,8 @@ go -C tools/deploy run . -teardown -nuke -fast-check
 go -C tools/deploy run . -manage-credentials
 ```
 
+Read [deployment commands, migration and recovery](../../docs/first-deployment.md) and the [alignment audit](../../docs/deployment-alignment.md) before upgrading an existing checkout. Full alignment is not yet established.
+
 The launchers supply the repository path explicitly. Direct commands retain the existing `-repo-root` option and default. `main.go` only calls the workflow entry point and handles process exit. GitHub Actions uses the same executable.
 
 ## Android signing imports
@@ -35,7 +37,7 @@ The app adapter also captures exact Cloudflare DNS records, immutable repository
 
 State buckets and KMS keys are processed only after earlier cleanup is verified. KMS use does not establish exclusive ownership: the operator must independently confirm each customer-managed key's exclusivity before it can be scheduled for deletion. Unapproved keys retain recovery data. Secrets Manager scheduled deletion and retained SYSTEM/AWS Backup data remain present until actual absence can be verified; this may keep a nuke incomplete after its stack has been removed. No secret values are read or saved in the report.
 
-The private `.attestra/nuke.<account>.local.json` report shows status, artifact type, zone/region, environment and identifiers. It is Composer's report format, not an automatic import of the legacy auth repository's nuke receipt. Rerun nuke to retry cleanup with its surviving inventory. Credential vaults and local deployment/setup records remain private and are retained; a nuke is not a source-code or credential wipe.
+The private `~/.infra-composer/<project>/nuke.<account>.local.json` report shows status, artifact type, zone/region, environment and identifiers. It is Composer's report format, not an automatic import of the legacy auth repository's nuke receipt. Rerun nuke to retry cleanup with its surviving inventory. Credential vaults and local deployment/setup records remain private and are retained; a nuke is not a source-code or credential wipe.
 
 Use `-teardown -nuke -check` for read-only verification of the saved inventory. `-teardown -nuke -fast-check` requires a previous check and queries only the latest `REMAINS` entries. Skipped evidence keeps its timestamp, and skipped unknowns do not become success. Checks do not discover new environment targets or perform deletion; resource-scoped DNS zone lookup can recover missing zone evidence after a token is supplied. Reports containing only external artifacts can still be checked after stacks disappear.
 
@@ -73,24 +75,23 @@ go -C tools/deploy build -o attestra-deploy ./
 
 Use `./...` when testing: the command package alone does not include the internal package tests. Tests use local fixtures and fake services; they do not deploy or tear down cloud environments.
 
-Existing deployment flags, checkpoint JSON, vault encryption/location, Pulumi configuration, Android export keys and the GitHub workflow entry point retain their behavior. The all-environment nuke flags are described above. See [migration and deployment](../../docs/migration.md) for the application project/state boundaries.
+Deployment flags, Pulumi project/backend identities, Android export keys and the GitHub workflow entry point remain compatible. Local records and vault locations require the explicit migration described below. Setup-only no longer authorizes an application/shared apply; use `-bootstrap -deploy` when deployment is intended. The all-environment nuke flags are described above. See [migration and deployment](../../docs/migration.md) for the application project/state boundaries.
 
 Windows credential renewal uses an unquoted absolute helper path because the AWS Go SDK's `cmd.exe` invocation does not preserve quoted executable paths. Paths containing spaces use the Windows short-path alias. If that filesystem has short names disabled, the wizard stops with instructions to set `TEMP` and `TMP` to an existing path without spaces (for example, `C:\attestra-temp`) and rerun. If `GOTMPDIR` is set, update it too; for a prebuilt executable, move it to such a directory. It never changes the original AWS profile.
 
 ## Generated local state
 
-Wizard progress files live in ignored `.attestra/` at the repository root:
+Wizard progress files now resolve through the validated project identity under `~/.infra-composer/<project>/`. Ignored repository-root `.deploy/` contains identity, encrypted vaults, local bootstrap/settings snapshots, selected component/environment, plans and build-cache manifests.
 
-- `bootstrap.<environment>.local.json`: non-secret setup choices, progress, health/completion receipts and configuration fingerprints.
-- `teardown.<environment>.local.json`: teardown progress, resource inventory and deletion verification.
-- `index-publication.<environment>.local.json`: pending publication/recovery receipts.
-- `teardown-history/`: archived completed teardown records and their encrypted configuration backups.
+- `bootstrap.<environment>.local.json`: setup choices/progress and receipts.
+- `teardown.<environment>.local.json`: reviewed teardown inventory and progress.
+- `index-publication.<environment>.local.json`: pending publication/recovery.
+- `teardown-history/`: completed teardown histories and encrypted backups.
+- `operator.lock`: exclusive operator run; inspect a crashed run before recovery.
 
-Their `.bak`, `.tmp` and `.lock` siblings stay alongside them. Stop any running setup/deployment/teardown before upgrading. On the next command, old root-level files are moved intact. Conflicting old/new files or existing operation locks stop migration for inspection; no history is overwritten. Interrupted moves resume on rerun.
+Stop other operators, back up the legacy records and run `./deploy.sh -project attestra -migrate-records`. Original records remain recovery copies. Migrate each legacy vault separately with `./deploy.sh -stack dev -migrate-vault`; this authenticates/decrypts/re-encrypts the old scope, verifies the new vault and retains the old file. Never rename a vault to bypass its scope. Conflicts and active locks stop migration.
 
-Keep `.attestra/` when resuming interrupted operations. These files contain no credential values but include infrastructure identifiers and recovery metadata; keep them private. The optional encrypted credential vault stays in its existing user-specific location. Build artifacts already live in `dist/`, public Android exports in `android-config/`, and Pulumi configuration stays in `infra/` and `infra-index/`.
-
-Shared-index teardown uses `-teardown-index` and its private `.attestra/teardown-index.<account>.<region>.local.json` checkpoint. It does not replace environment teardown. See [migration and deployment](../../docs/migration.md) for the current project/state names.
+No migration changes remote state URLs, project/resource identities, existing secrets or feature contracts. Keep vault/Pulumi passphrases and state versions recoverable. [The operator guide](../../docs/first-deployment.md) describes reruns and remaining account/region-layout, import/export and Windows limitations.
 
 ## Export values for the modular deployment wizard
 
@@ -143,13 +144,11 @@ reports preserve the pending deadline for a later metadata-only follow-up.
 
 ## Timed deployment confirmations
 
-Use `deploy.bat -timed-confirm` (Windows) or `./deploy.sh -timed-confirm` to give routine deployment approvals a five-second deadline. `setup.bat -timed-confirm` / `./setup.sh -timed-confirm` and `-scope shared` / `-scope both` support the same mode. Without the flag, confirmations wait for an answer as usual.
+Routine approvals and eligible nonsecret text defaults use a visible five-second countdown by default. Enter accepts immediately, y/n answers routine approval, and Escape/Ctrl+C/EOF/input failure cancel. The timed terminal reader is cancelled/joined and queued input flushed. Some legacy menus still require explicit input; see the audit.
 
-The prompt identifies the operation and states that it will continue automatically. Choose Continue to proceed immediately, or Cancel / Ctrl+C to stop. On timeout, the tool reports that it is continuing. Pulumi's final apply prompt is replaced with this timed approval; after approval Pulumi receives `--yes --non-interactive`. Preview and errors still run normally; an error or interruption is never treated as approval.
+`-timed-confirm` remains a compatibility flag. It is not needed to enable defaults and cannot enable timed teardown, migration, credentials or signing approval. Secret entry and destructive approvals remain deliberate with no automatic timeout.
 
-This is an interactive deployment mode, not a way to supply missing configuration. Credentials, text input, menus, repository/OIDC choices, signing-identity approvals, and vault-saving/replacement prompts still require an answer. Timed approvals cannot be combined with teardown/nuke, state migration, lock recovery, credential management, signing-approval management, or CI mode. The flag applies only to the current invocation and is not saved as a preference.
-
-The reusable policy comes from Composer’s `approval` package. Attestra supplies the five-second setting, operation classification, terminal rendering, CLI flag and Pulumi command integration; Composer controls deadline-versus-cancellation semantics and keeps protected operations manual.
+Every real Pulumi apply now requires a successful saved preview from the same process. The guard verifies plan SHA256, target/credentials, source/config/artifacts and expiry, and supplies `up --plan --skip-preview`. Destructive or unknown summaries require manual local approval and are rejected by CI. CI additionally requires explicit account/region/backend/stack/project and `-ci deploy -approve`. Setup-only stops before apply, retaining incomplete prerequisites for an explicit `-bootstrap -deploy` rerun.
 
 ### Dashboard snapshots
 

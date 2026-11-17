@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
@@ -27,6 +26,8 @@ import (
 )
 
 type bootstrapWizard struct {
+	roleIdentity                                      string
+	setupOnly                                         bool
 	indexAPIArn                                       string
 	snapshotTableARN                                  string
 	vault                                             *credentialvault.Vault
@@ -103,6 +104,9 @@ func ensureStateBucket(a awsenv.API, o options, account string) error {
 		}
 	}
 	if missing {
+		if o.ExistingState {
+			return errors.New("previously initialized state storage is missing; restore original bucket/state before continuing; no replacement created")
+		}
 		fmt.Printf("Creating private state bucket %s in account %s / %s. Keep its URL for resuming setup.\n", u.Host, account, o.Region)
 		args := []string{"s3api", "create-bucket", "--bucket", u.Host}
 		if o.Region != "us-east-1" {
@@ -137,6 +141,14 @@ func ensureStateBucket(a awsenv.API, o options, account string) error {
 			return err
 		}
 	}
+	if missing {
+		if _, err = a.Call(nil, "s3api", "put-bucket-encryption", "--bucket", u.Host, "--expected-bucket-owner", account, "--server-side-encryption-configuration", `{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}`); err != nil {
+			return err
+		}
+		if _, err = a.Call(nil, "s3api", "put-bucket-policy", "--bucket", u.Host, "--expected-bucket-owner", account, "--policy", tlsStatePolicy(u.Host)); err != nil {
+			return err
+		}
+	}
 	fmt.Println("✓ State bucket prepared. Existing encryption retained; new S3 buckets use encryption by default.")
 	return nil
 }
@@ -149,6 +161,7 @@ func (w *bootstrapWizard) prepare(a *awsenv.Client, c credentials, o options, ac
 		return errors.New("stack must match selected environment")
 	}
 	fmt.Println(lipgloss.NewStyle().Bold(true).Render("1 / 4 • State bucket and Pulumi stack"))
+	o.ExistingState = w.memory.StackInitialized
 	if err := ensureStateBucket(a, o, account); err != nil {
 		return err
 	}
@@ -181,7 +194,7 @@ func (w *bootstrapWizard) prepare(a *awsenv.Client, c credentials, o options, ac
 	if err != nil {
 		return err
 	}
-	w.r = &processRunner{env: env, onPreview: w.recordPreview, reportAccount: account}
+	w.r = &processRunner{reportRole: w.roleIdentity, setupOnly: w.setupOnly, env: env, onPreview: w.recordPreview, reportAccount: account}
 	if w.secrets.GitHub != "" {
 		w.r.reportGitHub = github.NewClient(w.secrets.GitHub)
 	}
@@ -190,20 +203,13 @@ func (w *bootstrapWizard) prepare(a *awsenv.Client, c credentials, o options, ac
 	}
 	w.a = &awsenv.Client{Env: env, RenewalFailure: credentialRenewalFailure}
 	w.r.reportActive = beginArtifactAttempt(w.r, w.r, w.root, filepath.Join(w.root, "infra"), o.Stack, "deploy")
-	// Prefer actual stack configuration; memory covers interruption before config writes.
-	current := map[string]struct{ Value string }{}
-	configPath := filepath.Join(w.root, "infra", "Pulumi."+o.Stack+".yaml")
-	if _, statErr := os.Stat(configPath); statErr == nil {
-		data, e := w.r.Exec(filepath.Join(w.root, "infra"), true, "pulumi", "config", "--json", "--stack", o.Stack)
-		if e != nil {
-			return e
-		}
-		if json.Unmarshal(data, &current) != nil {
-			return errors.New("cannot read existing stack configuration")
-		}
-	} else if !os.IsNotExist(statErr) {
-		return statErr
+	// Restore the original encrypted provider metadata/settings before asking for
+	// missing values. A fresh checkout must not manufacture new proof/domain inputs.
+	current, err := readAuthoritativeConfiguration(w.r, o, w.memory.StackInitialized)
+	if err != nil {
+		return err
 	}
+
 	if address := current["attestra-application:indexApiUrl"].Value; address != "" {
 		client, e := newIndexClient(w.r.env, address, current["attestra-application:indexRegion"].Value, w.environment)
 		if e != nil {
@@ -346,6 +352,11 @@ func (w *bootstrapWizard) saveProofKey(value string) error {
 	return nil
 }
 func (w *bootstrapWizard) finish(repo string) error {
+	if w.setupOnly {
+		w.showSetupSummary()
+		fmt.Println("Setup configuration saved. No application apply authorized. Use deploy -bootstrap -deploy for explicit deployment.")
+		return nil
+	}
 	complete := false
 	w.showSetupSummary()
 	fmt.Println("Continuing automatically through SES, DNS verification, and application deployment.")

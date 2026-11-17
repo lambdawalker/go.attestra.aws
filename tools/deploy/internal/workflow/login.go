@@ -24,6 +24,18 @@ func loginCredentials(r commandRunner, o options) (credentials, error) {
 	if strings.TrimSpace(o.Profile) == "" {
 		return credentials{}, errors.New("AWS login profile is required")
 	}
+	// A healthy IAM Identity Center session is reusable; do not reopen login.
+	if o.Sso {
+		if data, err := r.Exec(o.Root, true, "aws", "configure", "export-credentials", "--profile", o.Profile, "--format", "process"); err == nil {
+			if _, err = parseProcessCredentials(data); err == nil {
+				source, err := profileSource(o)
+				if err != nil {
+					return credentials{}, err
+				}
+				return credentials{Source: source}, nil
+			}
+		}
+	}
 	args := []string{"login", "--profile", o.Profile, "--region", o.Region}
 	failure := "AWS console login failed; see the AWS error above. For an IAM Identity Center profile, use -Sso; aws login requires AWS CLI v2.32.0+"
 	if o.Sso {

@@ -11,9 +11,9 @@ import (
 
 func writeMenuCheckpoint(t *testing.T, root, name, stage, repo string) {
 	t.Helper()
-	os.MkdirAll(filepath.Join(root, ".attestra"), 0700)
+	os.MkdirAll(stateDirectory(root), 0700)
 	data, _ := json.Marshal(bootstrapCheckpoint{Repository: repo, Environment: name, Stack: name, Stage: stage})
-	if err := os.WriteFile(filepath.Join(root, ".attestra", "bootstrap."+name+".local.json"), data, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(stateDirectory(root), "bootstrap."+name+".local.json"), data, 0600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -26,7 +26,7 @@ func TestDeploymentStartupFirstRunAndMenu(t *testing.T) {
 		{name: "fresh", want: "setup", flags: []string{"repo-root"}},
 		{name: "incomplete", stage: "deploying", repo: "owner/repo", want: "setup"},
 		{name: "complete", stage: "complete", repo: "owner/repo", want: "both", wantPrompt: true},
-		{name: "setup launcher", stage: "complete", repo: "owner/repo", want: "both", wantPrompt: true, flags: []string{"repo-root", "bootstrap"}},
+		{name: "setup launcher", stage: "complete", repo: "owner/repo", want: "explicit", wantPrompt: false, flags: []string{"repo-root", "bootstrap"}},
 		{name: "different repo", stage: "complete", repo: "other/repo", want: "setup"},
 		{name: "explicit stack", stage: "complete", repo: "owner/repo", want: "explicit", flags: []string{"stack"}},
 		{name: "explicit scope", want: "explicit", flags: []string{"scope"}},
@@ -53,7 +53,7 @@ func TestDeploymentMenuCancellationAndCorruptReceipt(t *testing.T) {
 	if _, err := deploymentStartup(root, "owner/repo", nil, func() (string, error) { return "", cancel }); !errors.Is(err, cancel) {
 		t.Fatal(err)
 	}
-	os.WriteFile(filepath.Join(root, ".attestra", "bootstrap.dev.local.json"), []byte("broken"), 0600)
+	os.WriteFile(filepath.Join(stateDirectory(root), "bootstrap.dev.local.json"), []byte("broken"), 0600)
 	if _, err := deploymentStartup(root, "owner/repo", nil, func() (string, error) { t.Fatal("prompted on corrupt receipt"); return "app", nil }); err == nil {
 		t.Fatal("ignored corrupt receipt")
 	}
@@ -93,7 +93,7 @@ func TestBothScopeRejectsUnrelatedOperations(t *testing.T) {
 	if err := validateDeployScope("both", []string{"scope", "stack", "region", "profile", "sso"}); err != nil {
 		t.Fatal(err)
 	}
-	for _, flag := range []string{"bootstrap", "ci", "publish-index", "release-index-lock", "health-check", "manage-credentials"} {
+	for _, flag := range []string{"bootstrap", "publish-index", "release-index-lock", "health-check", "manage-credentials"} {
 		if validateDeployScope("both", []string{flag}) == nil {
 			t.Fatalf("accepted %s", flag)
 		}
@@ -111,7 +111,7 @@ func TestMenuRecognizesCompletedSetupWithoutCommitReceipt(t *testing.T) {
 func TestDeploymentStartupUsesCheckpointRecoveryPrecedence(t *testing.T) {
 	root := t.TempDir()
 	writeMenuCheckpoint(t, root, "dev", "complete", "owner/repo")
-	dir := filepath.Join(root, ".attestra")
+	dir := stateDirectory(root)
 	primary := filepath.Join(dir, "bootstrap.dev.local.json")
 	legacyBackup := filepath.Join(dir, "bootstrap.local.json.bak")
 	if err := os.Rename(primary, legacyBackup); err != nil {

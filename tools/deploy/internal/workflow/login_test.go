@@ -63,30 +63,22 @@ func TestLoginEnvironment(t *testing.T) {
 }
 
 func TestSSOLoginCredentials(t *testing.T) {
-	for _, alsoLogin := range []bool{false, true} {
-		o := testOptions()
-		o.Profile = "attestra"
-		o.Sso = true
-		o.Login = alsoLogin
-		r := &loginStub{response: `{"Version":1,"AccessKeyId":"id","SecretAccessKey":"secret","SessionToken":"token","Expiration":"2099-01-01T00:00:00Z"}`}
-		c, err := loginCredentials(r, o)
-		if err != nil || c.Source == nil || !c.Source.SSO {
-			t.Fatal("SSO credentials not extracted", err)
-		}
-		if r.calls[0] != "aws sso login --profile attestra" || r.calls[1] != "aws configure export-credentials --profile attestra --format process" || !r.captured[1] {
-			t.Fatal(r.calls)
-		}
-		for fail := 1; fail <= 2; fail++ {
-			r := &loginStub{fail: fail}
-			if _, err := loginCredentials(r, o); err == nil || len(r.calls) != fail {
-				t.Fatal("continued after SSO failure")
-			}
-		}
-		r = &loginStub{fail: 1}
-		_, err = loginCredentials(r, o)
-		if !strings.Contains(err.Error(), "SSO") || strings.Contains(err.Error(), "current AWS CLI") {
-			t.Fatal("misleading SSO error", err)
-		}
+	o := testOptions()
+	o.Profile = "attestra"
+	o.Sso = true
+	good := `{"Version":1,"AccessKeyId":"id","SecretAccessKey":"secret","SessionToken":"token","Expiration":"2099-01-01T00:00:00Z"}`
+	cached := &loginStub{response: good}
+	c, e := loginCredentials(cached, o)
+	if e != nil || c.Source == nil || !c.Source.SSO || len(cached.calls) != 1 {
+		t.Fatal("valid SSO session not reused", e, cached.calls)
+	}
+	expired := &loginStub{response: good, fail: 1}
+	if _, e := loginCredentials(expired, o); e != nil || len(expired.calls) != 3 || expired.calls[1] != "aws sso login --profile attestra" {
+		t.Fatal("expired session not renewed", e, expired.calls)
+	}
+	failed := &loginStub{fail: 2}
+	if _, e := loginCredentials(failed, o); e == nil || len(failed.calls) != 2 {
+		t.Fatal("continued after failed SSO login")
 	}
 }
 

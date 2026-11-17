@@ -21,6 +21,25 @@ func ChooseEnvironment(existing []string) (string, error) {
 	return ChooseEnvironmentFor(existing, "Environment to set up")
 }
 func ChooseEnvironmentFor(existing []string, title string) (string, error) {
+	return ChooseEnvironmentDefault(existing, title, "dev")
+}
+func ChooseEnvironmentDefault(existing []string, title, selected string) (string, error) {
+	if ValidateEnvironment(selected) != nil {
+		selected = "dev"
+	}
+	if TimedConfirmationsEnabled() {
+		fmt.Printf("Discovered local environments: %s (custom names allowed).\n", strings.Join(existing, ", "))
+		if err := Input(title, &selected, false, true).Validate(ValidateEnvironment).Run(); err != nil {
+			return "", err
+		}
+		for _, name := range existing {
+			if strings.EqualFold(name, selected) && name != selected {
+				return "", errors.New("existing environment casing differs; reconfigure deliberately")
+			}
+		}
+		return selected, nil
+	}
+
 	names := []string{"dev", "qa", "prod"}
 	for _, name := range existing {
 		if ValidateEnvironment(name) != nil {
@@ -40,7 +59,6 @@ func ChooseEnvironmentFor(existing []string, title string) (string, error) {
 		choices = append(choices, huh.NewOption(label, name))
 	}
 	choices = append(choices, huh.NewOption("Use another environment…", ""))
-	selected := "dev"
 	if err := EnvironmentSelect(choices, &selected).Title(title).Run(); err != nil {
 		return "", err
 	}

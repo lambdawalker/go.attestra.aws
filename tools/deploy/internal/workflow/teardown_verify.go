@@ -17,7 +17,6 @@ import (
 
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/dns"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
-	credentialvault "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/vault"
 )
 
 type teardownResult struct{ Name, Status, Detail string }
@@ -145,12 +144,12 @@ func verifyTeardown(root string, p *teardownProgress, a awsenv.API, r commandRun
 	} else if len(p.Desired) > 0 && !p.DNSDone {
 		check("Cloudflare DNS", errors.New("no verified DNS cleanup or zone evidence"))
 	}
-	paths := []string{filepath.Join(".attestra", "deploy."+p.Environment+".local.json"), filepath.Join("infra", "Pulumi."+p.Environment+".yaml"), filepath.Join(".attestra", "bootstrap."+p.Environment+".local.json"), filepath.Join(".attestra", "bootstrap."+p.Environment+".local.json.bak"), filepath.Join("android-config", p.Environment+".properties")}
+	paths := []string{filepath.Join(stateDirectory(root), "deploy."+p.Environment+".local.json"), filepath.Join(root, "infra", "Pulumi."+p.Environment+".yaml"), filepath.Join(stateDirectory(root), "bootstrap."+p.Environment+".local.json"), filepath.Join(stateDirectory(root), "bootstrap."+p.Environment+".local.json.bak"), filepath.Join(root, "android-config", p.Environment+".properties")}
 	if p.Environment == "dev" {
-		paths = append(paths, filepath.Join(".attestra", "bootstrap.local.json"), filepath.Join(".attestra", "bootstrap.local.json.bak"))
+		paths = append(paths, filepath.Join(stateDirectory(root), "bootstrap.local.json"), filepath.Join(stateDirectory(root), "bootstrap.local.json.bak"))
 	}
 	for _, path := range paths {
-		_, e := os.Lstat(filepath.Join(root, path))
+		_, e := os.Lstat(path)
 		if os.IsNotExist(e) {
 			e = nil
 		} else if e == nil {
@@ -159,7 +158,7 @@ func verifyTeardown(root string, p *teardownProgress, a awsenv.API, r commandRun
 		check(path, e)
 	}
 	if p.DeleteVault {
-		path, _, e := credentialvault.Location(p.Repository, p.Environment)
+		path, _, e := teardownCredentialLocation(root, p.Repository, p.Environment)
 		if e == nil {
 			_, e = os.Lstat(path)
 			if os.IsNotExist(e) {

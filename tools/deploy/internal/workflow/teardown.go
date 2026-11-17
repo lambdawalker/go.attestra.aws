@@ -19,7 +19,6 @@ import (
 
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/dns"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
-	credentialvault "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/vault"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/term"
@@ -214,7 +213,7 @@ func runTeardown(root string) error {
 	if err = g.EnsureNoDeployments(repo); err != nil {
 		return err
 	}
-	path := filepath.Join(root, ".attestra", "teardown."+environment+".local.json")
+	path := filepath.Join(stateDirectory(root), "teardown."+environment+".local.json")
 	lockPath := path + ".lock"
 	lock, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
@@ -457,7 +456,7 @@ func runTeardown(root string) error {
 		}
 	}
 	if !resume {
-		vaultPath, _, e := credentialvault.Location(repo, environment)
+		vaultPath, _, e := teardownCredentialLocation(root, repo, environment)
 		if e != nil {
 			return e
 		}

@@ -65,3 +65,44 @@ func TestDirectLaunchers(t *testing.T) {
 		}
 	}
 }
+
+func TestShellLauncherPreservesEmptyAndQuotedArguments(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX argument test")
+	}
+	root, _ := filepath.Abs("../..")
+	dir := t.TempDir()
+	launcher := filepath.Join(dir, "deploy with spaces.sh")
+	b, e := os.ReadFile(filepath.Join(root, "deploy.sh"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	os.WriteFile(launcher, b, 0700)
+	trace := filepath.Join(dir, "args")
+	stub := "#!/bin/sh\nfor arg do printf '<%s>\\n' \"$arg\"; done > \"$DEPLOY_TEST_TRACE\"\nexit 19\n"
+	os.WriteFile(filepath.Join(dir, "go"), []byte(stub), 0700)
+	cmd := exec.Command("sh", launcher, "", "value with spaces", "literal;$HOME", "quote\"value")
+	cmd.Dir = t.TempDir()
+	cmd.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "DEPLOY_TEST_TRACE="+trace)
+	err := cmd.Run()
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || exit.ExitCode() != 19 {
+		t.Fatal(err)
+	}
+	data, e := os.ReadFile(trace)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, part := range []string{"<>\n", "<value with spaces>\n", "<literal;$HOME>\n", "<quote\"value>\n"} {
+		if !strings.Contains(string(data), part) {
+			t.Fatal("argument changed", string(data))
+		}
+	}
+	batch, e := os.ReadFile(filepath.Join(root, "deploy.bat"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if strings.Contains(strings.ToLower(string(batch)), "call go") {
+		t.Fatal("batch double-expands arguments")
+	}
+}

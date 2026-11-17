@@ -211,3 +211,58 @@ func RotatePassphrase(v *Vault, values Credentials, phrase string) (*Vault, erro
 }
 
 func (v *Vault) Close() { clear(v.key) }
+
+// LocalLocation binds new vaults to project, repository and environment. Legacy
+// locations are read only by the explicit decrypt/re-encrypt migration command.
+func LocalLocation(root, project, repo, environment string) (string, string, error) {
+	if root == "" || project == "" || repo == "" || environment == "" {
+		return "", "", errors.New("complete vault scope required")
+	}
+	scope := "attestra-credentials-v2\x00" + project + "\x00" + repo + "\x00" + environment
+	id := fmt.Sprintf("%x", sha256.Sum256([]byte(scope)))
+	return filepath.Join(root, ".deploy", "vaults", id+".vault.enc"), scope, nil
+}
+
+func Migrate(source, oldScope, target, newScope, phrase string) error {
+	if source == target || oldScope == newScope {
+		return errors.New("migration requires distinct source and destination scope")
+	}
+	if _, e := os.Lstat(target); !os.IsNotExist(e) {
+		return errors.New("destination vault already exists or is inaccessible; no file overwritten")
+	}
+	old, values, e := Unlock(source, oldScope, phrase)
+	if e != nil {
+		return e
+	}
+	defer old.Close()
+	next, e := Create(target, newScope, phrase)
+	if e != nil {
+		return e
+	}
+	defer next.Close()
+	// Serialize writers without ever treating an existing destination as disposable.
+	if e = os.MkdirAll(filepath.Dir(target), 0700); e != nil {
+		return e
+	}
+	lock, e := os.OpenFile(target+".lock", os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if e != nil {
+		return e
+	}
+	lock.Close()
+	defer os.Remove(target + ".lock")
+	if _, e = os.Lstat(target); !os.IsNotExist(e) {
+		return errors.New("destination vault appeared during migration")
+	}
+	if e = next.Save(values); e != nil {
+		return e
+	}
+	verified, after, e := Unlock(target, newScope, phrase)
+	if e != nil {
+		return e
+	}
+	defer verified.Close()
+	if after != values {
+		return errors.New("vault migration verification failed; original retained")
+	}
+	return nil
+}

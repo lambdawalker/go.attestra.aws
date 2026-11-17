@@ -9,7 +9,7 @@ import (
 func stateTestDir(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	if err := os.Mkdir(filepath.Join(root, ".attestra"), 0700); err != nil {
+	if err := os.Mkdir(stateDirectory(root), 0700); err != nil {
 		t.Fatal(err)
 	}
 	return root
@@ -23,19 +23,19 @@ func TestMigrateGeneratedState(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := prepareGeneratedState(root); err != nil {
+	if err := migrateGeneratedState(root); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range names {
-		data, err := os.ReadFile(filepath.Join(root, ".attestra", name))
+		data, err := os.ReadFile(filepath.Join(stateDirectory(root), name))
 		if err != nil || string(data) != name {
 			t.Fatalf("%s: %v", name, err)
 		}
-		if _, err := os.Stat(filepath.Join(root, name)); !os.IsNotExist(err) {
-			t.Fatal("legacy file remains")
+		if _, err := os.Stat(filepath.Join(root, name)); err != nil {
+			t.Fatal("legacy recovery file was lost")
 		}
 	}
-	if err := prepareGeneratedState(root); err != nil {
+	if err := migrateGeneratedState(root); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -47,14 +47,14 @@ func TestMigrationRefusesConflictsAndActiveLocks(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(root, name), []byte("original"), 0600); err != nil {
 			t.Fatal(err)
 		}
-		other := filepath.Join(root, ".attestra", name)
+		other := filepath.Join(stateDirectory(root), name)
 		if conflict == "lock" {
 			other = filepath.Join(root, "teardown.dev.local.json.lock")
 		}
 		if err := os.WriteFile(other, []byte("preserve"), 0600); err != nil {
 			t.Fatal(err)
 		}
-		if err := prepareGeneratedState(root); err == nil {
+		if err := migrateGeneratedState(root); err == nil {
 			t.Fatal("unsafe migration accepted")
 		}
 		data, _ := os.ReadFile(filepath.Join(root, name))
@@ -78,14 +78,14 @@ func TestMigrationPreservesTeardownHistoryAndRecoverySiblings(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := prepareGeneratedState(root); err != nil {
+	if err := migrateGeneratedState(root); err != nil {
 		t.Fatal(err)
 	}
-	if data, err := os.ReadFile(filepath.Join(root, ".attestra", "teardown-history", "dev-old", "receipt.json")); err != nil || string(data) != "history" {
+	if data, err := os.ReadFile(filepath.Join(stateDirectory(root), "teardown-history", "dev-old", "receipt.json")); err != nil || string(data) != "history" {
 		t.Fatal("history lost")
 	}
 	for _, suffix := range []string{"", ".bak", ".tmp"} {
-		if data, err := os.ReadFile(filepath.Join(root, ".attestra", "bootstrap.dev.local.json"+suffix)); err != nil || string(data) != suffix {
+		if data, err := os.ReadFile(filepath.Join(stateDirectory(root), "bootstrap.dev.local.json"+suffix)); err != nil || string(data) != suffix {
 			t.Fatal("recovery data lost")
 		}
 	}
@@ -93,7 +93,7 @@ func TestMigrationPreservesTeardownHistoryAndRecoverySiblings(t *testing.T) {
 
 func TestMigrationTreatsCheckoutPathLiterally(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "checkout[old]")
-	dir := filepath.Join(root, ".attestra")
+	dir := stateDirectory(root)
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -106,13 +106,13 @@ func TestMigrationTreatsCheckoutPathLiterally(t *testing.T) {
 	if err := os.WriteFile(lock, nil, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := prepareGeneratedState(root); err == nil {
+	if err := migrateGeneratedState(root); err == nil {
 		t.Fatal("ignored active teardown lock")
 	}
 	if err := os.Remove(lock); err != nil {
 		t.Fatal(err)
 	}
-	if err := prepareGeneratedState(root); err != nil {
+	if err := migrateGeneratedState(root); err != nil {
 		t.Fatal(err)
 	}
 	if data, err := os.ReadFile(filepath.Join(dir, name)); err != nil || string(data) != "backup" {

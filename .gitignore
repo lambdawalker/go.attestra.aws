@@ -17,3 +17,7 @@ deployment-reports/
 
 # Machine-local deployment defaults
 /.attestra/*.local.json
+
+# Private operator identity, vaults, plans and recovery snapshots
+/.deploy/
+/.attestra/

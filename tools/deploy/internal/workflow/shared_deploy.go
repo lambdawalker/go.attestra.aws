@@ -10,6 +10,7 @@ import (
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/dns"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/github"
 	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,8 +23,8 @@ func validateDeployScope(scope string, flags []string) error {
 	if scope != "shared" && scope != "both" {
 		return errors.New("-scope must be app, shared, or both")
 	}
-	allowed := map[string]bool{"timed-confirm": true, "scope": true, "repo-root": true, "region": true, "profile": true, "sso": true, "login": true}
-	if scope == "both" {
+	allowed := map[string]bool{"project": true, "ci": true, "approve": true, "account": true, "timed-confirm": true, "scope": true, "repo-root": true, "region": true, "profile": true, "sso": true, "login": true}
+	if scope == "both" || scope == "shared" {
 		allowed["stack"] = true
 		allowed["backend"] = true
 	}
@@ -135,12 +136,18 @@ func deploySharedWithCredentials(o options, c credentials, expectedAccount strin
 	if expectedAccount != "" && identity.Account != expectedAccount {
 		return errors.New("AWS account changed before shared deployment; no shared resources were changed")
 	}
+	if err := verifyDeployAccount(o, "", identity.Account); err != nil {
+		return err
+	}
 	fmt.Printf("Shared index/admin • account %s • region %s • stack shared\n", identity.Account, o.Region)
-	o.Backend = "s3://attestra-control-plane-state-" + identity.Account + "-" + o.Region
+	o.ExpectedAccount = identity.Account
+	if o.Scope != "shared" || o.Backend == "" {
+		o.Backend = "s3://attestra-control-plane-state-" + identity.Account + "-" + o.Region
+	}
 	if err = o.validate(); err != nil {
 		return err
 	}
-	r := &processRunner{reportAccount: identity.Account, env: replaceEnvironment(env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL()})}
+	r := &processRunner{reportRole: roleIdentity(identity.Arn), reportAccount: identity.Account, env: replaceEnvironment(env, map[string]string{"PULUMI_BACKEND_URL": o.backendURL()})}
 	if c.GitHubToken != "" {
 		r.reportGitHub = github.NewClient(c.GitHubToken)
 	}
@@ -157,7 +164,11 @@ func deploySharedWithCredentials(o options, c credentials, expectedAccount strin
 }
 
 func withSharedDeployLock(a awsenv.API, o options, account, tmp string, work func() error) (err error) {
-	bucket := strings.TrimPrefix(o.Backend, "s3://")
+	backend, err := url.Parse(o.Backend)
+	if err != nil {
+		return err
+	}
+	bucket := backend.Host
 	body := filepath.Join(tmp, "shared-deploy-lock.json")
 	if err = os.WriteFile(body, []byte(`{"operation":"deploy-shared"}`), 0600); err != nil {
 		return err
@@ -182,7 +193,11 @@ func withSharedDeployLock(a awsenv.API, o options, account, tmp string, work fun
 
 func deploySharedStack(r commandRunner, o options, build func(string) error) (resultErr error) {
 	if p, ok := r.(*processRunner); ok && !p.reportDisabled && p.reportActive == nil {
-		a := beginArtifactAttempt(p, r, o.Root, filepath.Join(o.Root, "infra-index"), "shared", "deploy")
+		operation := "deploy"
+		if o.CI == "preview" {
+			operation = "preview"
+		}
+		a := beginArtifactAttempt(p, r, o.Root, filepath.Join(o.Root, "infra-index"), "shared", operation)
 		p.reportActive = a
 		defer func() { a.finish(resultErr); p.reportActive = nil }()
 	}
@@ -237,6 +252,9 @@ func deploySharedStack(r commandRunner, o options, build func(string) error) (re
 	if _, err = run(false, "preview", "--stack", "shared"); err != nil {
 		return err
 	}
+	if o.CI == "preview" {
+		return recordSharedBinding(o, out)
+	}
 	if _, err = run(false, "up", "--stack", "shared"); err != nil {
 		return err
 	}
@@ -248,9 +266,27 @@ func deploySharedStack(r commandRunner, o options, build func(string) error) (re
 	if json.Unmarshal(data, &out) != nil || out.AdminPoolID == "" || out.AdminLoginDomain == "" {
 		return errors.New("shared deployment completed but admin outputs are incomplete")
 	}
+	if err := recordSharedBinding(o, out); err != nil {
+		return err
+	}
+	if o.CI != "" {
+		fmt.Println("Shared infrastructure updated; operator authentication reconciliation remains local.")
+		return nil
+	}
 	if _, err = r.Exec(o.Root, false, "go", "run", "./cmd/admin-setup", "-auth-only", "-pool", out.AdminPoolID, "-login", out.AdminLoginDomain); err != nil {
 		return fmt.Errorf("shared infrastructure updated; admin authentication reconciliation incomplete, rerun shared deployment: %w", err)
 	}
 	fmt.Println("Shared index and admin deployment finished. Environment backends were not deployed.")
 	return nil
+}
+
+func recordSharedBinding(o options, out sharedStackOutputs) error {
+	if o.ExpectedAccount == "" {
+		return nil
+	} // pure command-runner fixtures have no authenticated scope
+	b, e := validateSharedBinding(o.ExpectedAccount, o.Region, out)
+	if e != nil {
+		return e
+	}
+	return atomicPrivateJSON(filepath.Join(o.Root, ".deploy", "shared-binding.json"), b)
 }

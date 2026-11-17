@@ -44,7 +44,7 @@ func validateArtifactFlags(f artifactReportFlags, flags []string) error {
 		return errors.New("choose -report or -preview")
 	}
 	if !f.Report && !f.Preview {
-		for _, name := range []string{"report", "preview", "refresh", "env", "account", "feature"} {
+		for _, name := range []string{"report", "preview", "refresh", "env", "feature"} {
 			if containsReportFlag(flags, name) {
 				return errors.New("artifact reporting flags require -report or -preview")
 			}
@@ -81,7 +81,7 @@ func artifactProject(dir string) string {
 }
 func artifactCheckpoint(root, stack string) bootstrapCheckpoint {
 	var c bootstrapCheckpoint
-	b, e := os.ReadFile(filepath.Join(root, ".attestra", "bootstrap."+stack+".local.json"))
+	b, e := os.ReadFile(filepath.Join(stateDirectory(root), "bootstrap."+stack+".local.json"))
 	if e == nil {
 		_ = json.Unmarshal(b, &c)
 	}

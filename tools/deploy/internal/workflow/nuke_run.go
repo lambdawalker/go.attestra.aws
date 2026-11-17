@@ -46,7 +46,7 @@ func validateComposerNukeFlags(nuke, teardown bool, supplied []string) error {
 }
 
 func ensureNoActiveComposerNuke(root string) error {
-	locks, err := filepath.Glob(filepath.Join(root, ".attestra", "nuke.*.lock"))
+	locks, err := filepath.Glob(filepath.Join(stateDirectory(root), "nuke.*.lock"))
 	if err != nil {
 		return err
 	}
@@ -264,7 +264,7 @@ func runComposerNuke(root string, check, fast bool) error {
 		return errors.New("invalid AWS account identity")
 	}
 	scope := teardown.Scope{Application: "attestra", Account: identity.Account}
-	path := filepath.Join(root, ".attestra", "nuke."+identity.Account+".local.json")
+	path := filepath.Join(stateDirectory(root), "nuke."+identity.Account+".local.json")
 	if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}

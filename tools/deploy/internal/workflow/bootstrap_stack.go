@@ -66,6 +66,11 @@ func bootstrapStack(r commandRunner, o options, defaults map[string]string, know
 			return err
 		}
 	}
+	if exists {
+		if _, err = r.Exec(infra, true, "pulumi", "config", "refresh", "--stack", o.Stack, "--force", "--non-interactive"); err != nil {
+			return errors.New("cannot restore authoritative encrypted stack configuration; nothing overwritten")
+		}
+	}
 	data, err = r.Exec(infra, true, "pulumi", "stack", "export", "--show-secrets", "--stack", o.Stack)
 	if err != nil {
 		return err

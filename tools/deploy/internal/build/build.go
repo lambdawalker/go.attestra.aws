@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -14,8 +15,6 @@ import (
 	"sync"
 
 	"github.com/lambdawalker/go.attestra.aws/artifacts"
-
-	awsenv "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/aws"
 )
 
 func PackageLambda(binary, archive string) (err error) {
@@ -45,10 +44,8 @@ func PackageLambda(binary, archive string) (err error) {
 	if err != nil {
 		return err
 	}
-	// Windows cannot rename over an existing destination.
-	if err = os.Remove(archive); err != nil && !os.IsNotExist(err) {
-		return err
-	}
+	// Go uses replace-existing rename on Windows as well. Never expose a missing
+	// archive between removing the old output and publishing the new one.
 	return os.Rename(out.Name(), archive)
 }
 
@@ -114,39 +111,50 @@ func runLambdaBuilds(jobs []lambdaBuild, workers int, build func(context.Context
 	return first
 }
 
-func Lambdas(root string) error {
-	workers := min(4, max(1, runtime.NumCPU()/2))
-	parallel := max(1, runtime.NumCPU()/workers)
-	fmt.Printf("Building %d unique binaries for %d Lambdas with %d workers\n", len(lambdaBuilds()), len(LambdaNames), workers)
-	return runLambdaBuilds(lambdaBuilds(), workers, func(ctx context.Context, job lambdaBuild) error {
-		dir := filepath.Join(root, "dist", job.names[0])
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return err
+func Lambdas(root string) error { return buildTargets(root, lambdaBuilds()) }
+func buildTargets(root string, jobs []lambdaBuild) error {
+	workers := min(4, max(1, runtime.GOMAXPROCS(0)/2))
+	if raw := os.Getenv("ATTESTRA_BUILD_WORKERS"); raw != "" {
+		n, e := strconv.Atoi(raw)
+		if e != nil || n < 1 || n > 16 {
+			return fmt.Errorf("ATTESTRA_BUILD_WORKERS must be between 1 and 16")
 		}
-		binary := filepath.Join(dir, "bootstrap")
-		cmd := exec.CommandContext(ctx, "go", "build", "-p", strconv.Itoa(parallel), "-trimpath", "-tags", "lambda.norpc", "-o", binary, job.source)
-		cmd.Dir = root
-		cmd.Env = append(awsenv.WithoutCredentials(os.Environ()), "GOOS=linux", "GOARCH=arm64", "CGO_ENABLED=0")
-		var output bytes.Buffer
-		cmd.Stdout, cmd.Stderr = &output, &output
-		fmt.Printf("Building %s (%d Lambda archives)\n", job.source, len(job.names))
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("build %s: %w\n%s", job.source, err, output.String())
-		}
-		for _, name := range job.names {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			if err := PackageLambda(binary, filepath.Join(root, "dist", name+".zip")); err != nil {
-				return fmt.Errorf("package %s: %w", name, err)
-			}
-		}
-		fmt.Printf("Built %s\n", job.source)
-		return nil
+		workers = n
+	}
+	parallel := max(1, min(4, runtime.GOMAXPROCS(0)/workers))
+	return withBuildLock(root, func() error {
+		return runLambdaBuilds(jobs, workers, func(ctx context.Context, job lambdaBuild) error {
+			return cachedBuild(ctx, root, job, func(binary string) error {
+				cmd := exec.CommandContext(ctx, "go", "build", "-mod=readonly", "-p", strconv.Itoa(parallel), "-trimpath", "-tags", "lambda.norpc", "-o", binary, job.source)
+				cmd.Dir = root
+				cmd.Env = buildEnvironment()
+				var output bytes.Buffer
+				cmd.Stdout, cmd.Stderr = &output, &output
+				if err := cmd.Run(); err != nil {
+					return fmt.Errorf("build %s: %w\n%s", job.source, err, output.String())
+				}
+				return nil
+			})
+		})
 	})
 }
 
 func CheckArchives(root string) error {
+	for _, job := range lambdaBuilds() {
+		path := cachePath(root, job.source)
+		b, e := os.ReadFile(path)
+		var m cacheManifest
+		if e != nil || json.Unmarshal(b, &m) != nil || !reusable(root, path, m.Desired, job.names) {
+			return fmt.Errorf("archive integrity check failed for %s; restart deployment to rebuild", job.source)
+		}
+		desired, e := inputFingerprint(context.Background(), root, job.source)
+		if e != nil {
+			return e
+		}
+		if desired != m.Desired {
+			return fmt.Errorf("build inputs changed for %s; rebuild before deployment", job.source)
+		}
+	}
 	for _, name := range LambdaNames {
 		path := filepath.Join(root, "dist", name+".zip")
 		info, err := os.Stat(path)

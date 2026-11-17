@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/ui"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	awsenv "github.com/lambdawalker/go.attestra.aws/tools/deploy/internal/aws"
@@ -23,6 +23,10 @@ type options struct {
 	ReleaseIndex, SkipIndex, PublishOnly                   bool
 	ExportAndroid                                          string
 	HealthCheck                                            bool
+	RequireSharedBinding                                   bool
+	ExistingState                                          bool
+	Approved                                               bool
+	ExpectedAccount, Scope                                 string
 	ReuseBuild                                             bool // Internal: only after a successful build in this staged run.
 	Targets                                                []string
 	Root, Stack, Backend, Region, MigrateFrom, Profile, CI string
@@ -37,9 +41,13 @@ type commandRunner interface {
 	Exec(dir string, capture bool, name string, args ...string) ([]byte, error)
 }
 type processRunner struct {
+	plans          map[string]*savedPlan
+	ciApproved     bool
+	setupOnly      bool
 	reportRunner   commandRunner
 	reportDisabled bool
 	reportAccount  string
+	reportRole     string
 	reportGitHub   *github.Client
 	reportDNS      *dns.Client
 	reportActive   *artifactAttempt
@@ -52,9 +60,56 @@ type processRunner struct {
 func (p *processRunner) Exec(dir string, capture bool, name string, args ...string) (result []byte, resultErr error) {
 	finishReport := p.artifactCommand(dir, name, args)
 	defer func() { finishReport(resultErr) }()
-	args, err := timedPulumiArgs(name, args, ui.TimedConfirmationsEnabled(), ui.Continue)
-	if err != nil {
-		return nil, err
+	var plan *savedPlan
+	root := filepath.Dir(dir)
+	if name == "pulumi" && len(args) > 0 {
+		switch args[0] {
+		case "config":
+			if len(args) > 1 && args[1] == "refresh" {
+				if err := backupStackConfiguration(root, dir, args); err != nil {
+					return nil, err
+				}
+			}
+		case "preview":
+			if p.plans == nil {
+				p.plans = map[string]*savedPlan{}
+			}
+			p.plans[dir].cleanup()
+			var err error
+			plan, err = newSavedPlan(root, dir, p.env, args)
+			if err != nil {
+				return nil, err
+			}
+			p.plans[dir] = plan
+			args = append(slices.Clone(args), "--save-plan", plan.path, "--refresh")
+		case "up":
+			if p.setupOnly {
+				return nil, errors.New("setup-only stopped after preview; no apply authorized. Rerun deploy -bootstrap -deploy to explicitly deploy these prerequisites")
+			}
+			plan = p.plans[dir]
+			if err := plan.validate(root, dir, p.env, args); err != nil {
+				return nil, err
+			}
+			if err := approveSavedPlan(plan, p.ciApproved); err != nil {
+				return nil, err
+			}
+			// Always constrain apply, even when a setup stage supplied --yes.
+			args = append(slices.Clone(args), "--plan", plan.path, "--skip-preview")
+			if !slices.Contains(args, "--yes") {
+				args = append(args, "--yes")
+			}
+			if !slices.Contains(args, "--non-interactive") {
+				args = append(args, "--non-interactive")
+			}
+			defer func() { plan.cleanup(); delete(p.plans, dir) }()
+		}
+	}
+	if name == "pulumi" && len(args) > 0 && args[0] == "up" && p.reportAccount != "" {
+		b, e := p.Exec(root, true, "aws", "sts", "get-caller-identity", "--output", "json", "--no-cli-pager")
+		var id struct{ Account, Arn string }
+		if e != nil || json.Unmarshal(b, &id) != nil || id.Account != p.reportAccount || (p.reportRole != "" && roleIdentity(id.Arn) != p.reportRole) {
+			return nil, errors.New("AWS account/role could not be reverified before apply; preview again with the intended identity")
+		}
 	}
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
@@ -77,13 +132,20 @@ func (p *processRunner) Exec(dir string, capture bool, name string, args ...stri
 		if err != nil {
 			return nil, err
 		}
+		if plan != nil {
+			if args[0] == "preview" {
+				plan.effectiveConcurrency = &effective
+			} else if plan.effectiveConcurrency == nil || *plan.effectiveConcurrency != effective {
+				return nil, errors.New("effective Lambda quota configuration changed after preview; preview again")
+			}
+		}
 		cmd.Env = captureEnvironment(cmd.Env, effective)
 	}
 	var eventLog string
 	if name == "pulumi" && len(args) > 0 && args[0] == "refresh" {
 		cmd.Env = replaceEnvironment(cmd.Env, map[string]string{"PULUMI_DEBUG_COMMANDS": "true"})
 	}
-	if name == "pulumi" && len(args) > 0 && args[0] == "preview" && (p.onPreview != nil || p.reportActive != nil) {
+	if name == "pulumi" && len(args) > 0 && args[0] == "preview" && (plan != nil || p.onPreview != nil || p.reportActive != nil) {
 		eventLog = pulumiEventLogArg(args)
 		if eventLog == "" {
 			path, cleanup, e := previewEventLog()
@@ -105,6 +167,11 @@ func (p *processRunner) Exec(dir string, capture bool, name string, args ...stri
 		fmt.Printf("\n→ %s %s\n", name, strings.Join(args, " "))
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	}
+	if name == "pulumi" && len(args) > 0 && args[0] == "up" {
+		if err := plan.validate(root, dir, p.env, args); err != nil {
+			return nil, err
+		}
 	}
 	if name == "pulumi" && len(args) > 0 && args[0] == "up" && p.reportActive != nil {
 		p.reportActive.upExecuted = true
@@ -139,6 +206,16 @@ func (p *processRunner) Exec(dir string, capture bool, name string, args ...stri
 			return nil, pulumiCommandError(args, stderr.String(), cmd.Env, err)
 		}
 		return nil, fmt.Errorf("%s failed: %w", name, err)
+	}
+	if name == "pulumi" && len(args) > 0 && args[0] == "preview" && plan != nil {
+		if err := plan.seal(eventLog); err != nil {
+			return nil, err
+		}
+	}
+	if name == "pulumi" && len(args) > 0 && args[0] == "up" {
+		if err := plan.recordApplied(root, dir, p.reportAccount, p.env, args); err != nil {
+			return nil, fmt.Errorf("Pulumi apply succeeded but local success receipt failed; inspect live state before retry: %w", err)
+		}
 	}
 	return out.Bytes(), nil
 }
@@ -218,7 +295,7 @@ func checkBucket(r commandRunner, o options, account string) error {
 	if !b.BlockPublicAcls || !b.IgnorePublicAcls || !b.BlockPublicPolicy || !b.RestrictPublicBuckets {
 		return errors.New("enable all four public access block settings on the state bucket")
 	}
-	return nil
+	return verifyStateSecurity(r, o, account)
 }
 func pullRepository(r commandRunner, root string) error {
 	status, err := r.Exec(root, true, "git", "status", "--porcelain")
@@ -274,6 +351,9 @@ func executeCore(r commandRunner, o options) error {
 	}
 	if _, err := r.Exec(infra, true, "pulumi", "stack", "select", o.Stack, "--non-interactive"); err != nil {
 		return errors.New("cannot select the S3 stack; check access or run --migrate-from OWNER/attestra-application/STACK once; no empty stack was created")
+	}
+	if _, err := r.Exec(infra, true, "pulumi", "config", "refresh", "--stack", o.Stack, "--force", "--non-interactive"); err != nil {
+		return fmt.Errorf("cannot restore encrypted stack configuration; no deployment started: %w", err)
 	}
 	if err := checkStackRequirements(r, o, true); err != nil {
 		return err
@@ -353,6 +433,18 @@ func checkStackRequirements(r commandRunner, o options, requireRuntime bool) err
 	}
 	if config["aws:region"].Value != o.Region {
 		return errors.New("entered AWS region must match the stack's aws:region configuration")
+	}
+	if requireRuntime && o.RequireSharedBinding {
+		b, e := readSharedBinding(o.Root)
+		if e != nil {
+			return e
+		}
+		if b.Account != o.ExpectedAccount || b.Region != o.Region {
+			return errors.New("shared handoff account/region differs from backend target")
+		}
+		if e = checkSharedBackendBinding(config, b); e != nil {
+			return e
+		}
 	}
 	if requireRuntime && (strings.TrimSpace(config["attestra-application:runtimeTableName"].Value) == "" || strings.TrimSpace(config["attestra-application:runtimeTableArn"].Value) == "") {
 		return fmt.Errorf("shared admin/runtime setup is incomplete for %s (runtimeTableName and runtimeTableArn are required); run .\\setup.bat -Stack %s -force-setup on Windows or ./setup.sh -stack %s -force-setup on macOS/Linux, complete the shared dashboard setup and provide your administrator email, then retry deployment; setup writes these values automatically", o.Stack, o.Stack, o.Stack)

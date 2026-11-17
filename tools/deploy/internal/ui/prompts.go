@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -30,12 +29,16 @@ func Continue(title string) error {
 	if !TimedConfirmationsEnabled() {
 		return Confirm(title)
 	}
-	yes := false
-	err := runContinuation(continuationForm(title, &yes), &yes, TimedConfirmationDelay)
-	if err == nil && !yes {
-		fmt.Println("No response after 5 seconds; continuing.")
+	answer, err := terminalQuestion(title+"; press n to cancel", "y", true)
+	if err != nil {
+		return err
 	}
-	return err
+	switch strings.ToLower(strings.TrimSpace(answer)) {
+	case "y", "yes":
+		return nil
+	default:
+		return ErrCancelled
+	}
 }
 
 // Composer owns approval policy. The adapter only translates Huh's result.
@@ -67,7 +70,7 @@ func Required(v string) error {
 	}
 	return nil
 }
-func Input(title string, value *string, secret, mandatory bool) *huh.Input {
+func Input(title string, value *string, secret, mandatory bool) *TextInput {
 	field := huh.NewInput().Title(title).Value(value)
 	if secret {
 		field.EchoMode(huh.EchoModePassword)
@@ -75,7 +78,7 @@ func Input(title string, value *string, secret, mandatory bool) *huh.Input {
 	if mandatory {
 		field.Validate(Required)
 	}
-	return field
+	return &TextInput{Input: field, title: title, value: value, secret: secret, mandatory: mandatory}
 }
 func Confirm(title string) error {
 	yes := false

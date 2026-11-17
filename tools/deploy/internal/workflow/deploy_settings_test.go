@@ -10,8 +10,8 @@ import (
 
 func TestDeployReadsBootstrapSettings(t *testing.T) {
 	root := t.TempDir()
-	os.MkdirAll(filepath.Join(root, ".attestra"), 0700)
-	path := filepath.Join(root, ".attestra", "bootstrap.dev.local.json")
+	os.MkdirAll(stateDirectory(root), 0700)
+	path := filepath.Join(stateDirectory(root), "bootstrap.dev.local.json")
 	original := `{"Repository":"owner/repo","Stack":"dev","Backend":"s3://saved","Region":"us-east-2","Settings":{"authMode":"sso","profile":"attestra"}}`
 	os.WriteFile(path, []byte(original), 0600)
 	saved, err := readDeploySettings(root, "dev", "owner/repo")
@@ -35,6 +35,7 @@ func TestDeployReadsBootstrapSettings(t *testing.T) {
 		t.Fatal("bootstrap progress overwritten")
 	}
 	again, err := readDeploySettings(root, "dev", "owner/repo")
+	saved.Version = 1
 	if err != nil || again != saved {
 		t.Fatalf("round trip: %+v %v", again, err)
 	}
@@ -61,8 +62,8 @@ func TestDeployExplicitFlagsWin(t *testing.T) {
 
 func TestDeployRejectsCorruptSettings(t *testing.T) {
 	root := t.TempDir()
-	os.MkdirAll(filepath.Join(root, ".attestra"), 0700)
-	os.WriteFile(filepath.Join(root, ".attestra", "deploy.dev.local.json"), []byte("broken"), 0600)
+	os.MkdirAll(stateDirectory(root), 0700)
+	os.WriteFile(filepath.Join(stateDirectory(root), "deploy.dev.local.json"), []byte("broken"), 0600)
 	if _, err := readDeploySettings(root, "dev", "owner/repo"); err == nil {
 		t.Fatal("silently ignored corrupt settings")
 	}
@@ -78,10 +79,10 @@ func TestTeardownCleansOnlySelectedDeploySettings(t *testing.T) {
 	if err := cleanupTeardownLocal(root, &teardownProgress{Environment: "qa", Repository: "owner/repo"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".attestra", "deploy.qa.local.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(stateDirectory(root), "deploy.qa.local.json")); !os.IsNotExist(err) {
 		t.Fatal("qa settings retained")
 	}
-	if _, err := os.Stat(filepath.Join(root, ".attestra", "deploy.dev.local.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(stateDirectory(root), "deploy.dev.local.json")); err != nil {
 		t.Fatal("dev settings removed")
 	}
 }

@@ -48,8 +48,10 @@ func TestPreviewHookCapturesCountsAndDeletesRawLog(t *testing.T) {
 [ "$PULUMI_DEBUG_COMMANDS" = "true" ] || exit 4
 while [ "$#" -gt 0 ]; do
  if [ "$1" = "--event-log" ]; then shift; log="$1"; fi
+ if [ "$1" = "--save-plan" ]; then shift; plan="$1"; fi
  shift
 done
+printf '%s' '{}' > "$plan"
 printf '%s' "$log" > "$PREVIEW_TEST_PATH"
 printf '%s\n' '{"summaryEvent":{"resourceChanges":{"create":2,"same":1}}}' > "$log"
 exit "$PREVIEW_TEST_EXIT"

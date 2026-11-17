@@ -74,7 +74,7 @@ type pendingIndex struct {
 }
 
 func indexPendingPath(root, stack string) string {
-	return filepath.Join(root, ".attestra", "index-publication."+stack+".local.json")
+	return filepath.Join(stateDirectory(root), "index-publication."+stack+".local.json")
 }
 func publicIndexConfiguration(r commandRunner, o options) (registry.Configuration, error) {
 	c, _, e := publicationConfiguration(r, o)
